@@ -11,8 +11,8 @@
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
-[![Storage](https://img.shields.io/badge/Storage-Embedded%20SQLite%20WAL-success?logo=sqlite&style=for-the-badge)](https://sqlite.org)
-[![Privacy](https://img.shields.io/badge/Privacy-100%25%20Offline%20%26%20Zero%20Telemetry-emerald?style=for-the-badge)](#privacy--offline-guarantee)
+[![Storage](https://img.shields.io/badge/Telemetry-100%25%20In--Memory%20(Zero%20Disk%20I%2FO)-success?style=for-the-badge)](#-ephemeral-in-memory-telemetry)
+[![Privacy](https://img.shields.io/badge/Privacy-100%25%20Offline%20%26%20Zero%20Telemetry-emerald?style=for-the-badge)](#-privacy--offline-guarantee)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <p align="center">
@@ -37,68 +37,80 @@
 ### Why Task Manager for macOS?
 - **Zero Web Runtimes:** 100% native Swift, SwiftUI, AppKit, Metal, and Darwin Mach kernel APIs. No Electron, Node.js, Chromium, or web servers.
 - **Featherlight Overhead:** Idles with `< 0.4%` CPU usage and `~25MB` memory footprint.
+- **Unified Technical Dashboard:** All Performance & Hardware metrics consolidated into a single, high-density landing page without nested sub-menus.
+- **Live Sidebar Sparklines:** Real-time mini-graphs rendered directly in the sidebar navigation in strict order: **CPU $\rightarrow$ GPU $\rightarrow$ Memory $\rightarrow$ Disk $\rightarrow$ Network**.
 - **True GPU Visualization:** Real-time GPU load percentage, renderer utilization, tiler utilization, and allocated/in-use VRAM directly from Apple Silicon & discrete GPUs.
-- **True "End Task" Process Control:** Instant graceful (`SIGTERM`) or forced (`SIGKILL`) termination of misbehaving applications.
-- **Truthful Hardware Discovery:** Never reports fabricated metrics (e.g. 0°C or 0 RPM). Unsupported sensors are explicitly marked with typed capability statuses.
-- **100% Offline & Local-First:** All rollups and settings persist strictly on your device in an embedded SQLite database (`taskmanager.sqlite`).
+- **Memory-First Process Sorting:** Processes default-sorted by physical memory footprint for instant leak detection, with instant "End Task" process control.
+- **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear.
+- **Single-Tab Technical Settings:** Aligned, organized configuration options in one clean view.
 
 ---
 
 ## ⚡ Key Features
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │  Task Manager (macOS)                                                  │
-├───────────────┬────────────────────────────────────────────────────────┤
-│ 🚀 Processes  │ Process Name         PID   CPU %   Memory  Arch   End  │
-│ 📊 CPU        │ Safari              1420    4.2%   340 MB  Apple  [✕]  │
-│ 🧠 Memory     │ Xcode               8912   12.8%   2.4 GB  Apple  [✕]  │
-│ 🎮 GPU        │ WindowServer         280    6.1%   410 MB  Apple  [✕]  │
-│ 💾 Disk       │ Terminal            4510    0.1%    45 MB  Apple  [✕]  │
-│ 🌐 Network    ├────────────────────────────────────────────────────────┤
-│ ⚡ Startup    │ [ 60-Second Real-Time Hardware Time-Series Charts ]    │
-│ ⚙️ Settings   │ GPU: 14.2%  •  CPU: 8.5%  •  RAM: 18.2 GB / 36 GB      │
-└───────────────┴────────────────────────────────────────────────────────┘
+├─────────────────────┬──────────────────────────────────────────────────┤
+│ ⚡ Dashboard (Live) │ [ SYSTEM SUMMARY: Apple M2 Pro • 12 Cores • UMA ]│
+│ 🚀 Processes (184)  ├──────────────────────────────────────────────────┤
+│ ⚡ Startup Apps     │ CPU: 14.2%  [ ~~~~/\~~ ]  User 8.2% • System 6.0%│
+│ ⚙️ Settings         │ GPU:  8.5%  [ ~~~~/~\~ ]  Renderer • Tiler • VRAM│
+├─────────────────────┤ Memory: 54% [ ~~~~~~~~ ]  18.2 GB / 36 GB (Norm) │
+│ LIVE TELEMETRY      │ Disk:   42% [ ======-- ]  Macintosh HD (APFS)    │
+│ CPU     [~~/\~] 14% │ Net: 1.2M/s [ __/\____ ]  ↓ 1.2 MB/s  ↑ 45 KB/s  │
+│ GPU     [~/\~~]  8% ├──────────────────────────────────────────────────┤
+│ Memory  [~~~~~] 54% │ PROCESSES (Default: Memory Footprint)            │
+│ Disk    [====-] 42% │ Xcode               8912   12.8%   2.4 GB  [End] │
+│ Network [_/\__]1.2M │ Safari              1420    4.2%   340 MB  [End] │
+└─────────────────────┴──────────────────────────────────────────────────┘
 ```
 
-### 1. 🚀 Software & Process Management ("Processes" Tab)
+### 1. ⚡ Unified Performance & Hardware Dashboard (Landing Page)
+- **Consolidated Single-View Telemetry:** All hardware metrics (CPU, GPU, Memory, Disk, Network, Platform Specs) displayed in one comprehensive, technical dashboard without nested sub-menus.
+- **Thermal & Health Ticker:** Live thermal throttling status (`Nominal`, `Fair`, `Serious`, `Critical`), system uptime counter, and active process count.
+- **System Specifications Matrix:** Transparent hardware disclosure of Mac model, chip architecture, physical/logical core topology, installed RAM, GPU model, and Darwin kernel build.
+
+### 2. 📊 Live Sidebar Sparklines (Real-Time Mini Graphs)
+- Hardware-accelerated mini sparkline graphs stream live in the leftmost navigation sidebar in strict order:
+  1. **CPU** — Live utilization % + Sparkline graph
+  2. **GPU** — Live GPU load % + Sparkline graph (immediately after CPU!)
+  3. **Memory** — Live RAM usage % + Sparkline graph
+  4. **Disk** — Live storage used % + Progress gauge
+  5. **Network** — Live download throughput + Sparkline graph
+- Clicking any sidebar telemetry row navigates instantly to the Dashboard.
+
+### 3. 🚀 Software & Process Management ("Processes" Tab)
 - Real-time inventory of all running applications and processes with inspectable memory, PID, and architecture (`Apple Silicon` / `Intel 64-bit`).
+- **Memory-First Default Sort:** Automatically sorted by resident memory footprint descending to immediately identify high-memory applications.
 - Live CPU % utilization per process calculated across Mach thread runtime differentials.
 - Instant **"End Task"** action button and context menu with graceful (`NSRunningApplication.terminate`) and forced (`SIGKILL`) termination options.
 - Instant search filter by application name, bundle identifier, or process PID.
-- Multi-column sorting by CPU Usage %, Memory Footprint, Name, or Process ID.
 
-### 2. 🎮 GPU Visualization & Telemetry ("Performance > GPU")
-- **Live 60-Second Utilization Graph:** Interactive Swift Charts rendering continuous GPU engine activity.
+### 4. 🎮 GPU Visualization & Telemetry (Apple Metal + IOKit)
+- **Live 60-Second Utilization Graph:** Continuous GPU engine load time-series rendered via Swift Charts.
 - **Multi-Engine Breakdown:** Overall Device Utilization %, Renderer Core Utilization %, and Tiler Pipeline Utilization %.
 - **VRAM / Unified Memory Tracking:** Real-time allocated system memory and active in-use VRAM.
 - **Metal Hardware Profile:** Dynamic device identification via Apple Metal (`MTLCopyAllDevices`).
 
-### 3. 📊 CPU & Processor Telemetry ("Performance > CPU")
-- Host tick deltas derived directly from Mach kernel `HOST_CPU_LOAD_INFO`.
-- Continuous 60-second utilization chart with user, system, and idle distributions.
-- Core topology: physical cores vs. logical virtual cores and microarchitecture detection.
-
-### 4. 🧠 Memory Architecture ("Performance > Memory")
+### 5. 🧠 Mach Virtual Memory Architecture
 - Full Mach VM page accounting: **Active**, **Wired**, **Compressed**, and **Free** memory.
 - Dynamic color-coded stacked composition bar.
 - Real-time kernel memory pressure alerts (`Normal`, `Warning`, `Critical`).
 
-### 5. 💾 Storage Volumes ("Performance > Disk")
-- Non-intrusive volume discovery using Apple `NSURLResourceKey` APIs.
-- Volume mount paths, format types (APFS, Mac OS Extended, ExFAT), total capacity, used space, and free space.
-
-### 6. 🌐 Network Throughput ("Performance > Network")
-- Live inbound (Download) and outbound (Upload) throughput graphs via BSD `getifaddrs`.
-- Primary active network interface detection and cumulative transferred byte counters.
-
-### 7. ⚡ Startup Apps Management ("Startup Apps" Tab)
+### 6. ⚡ Startup Apps Management ("Startup Apps" Tab)
 - Inspect and toggle background login items and launch services using Apple's modern `SMAppService` framework.
 - Startup impact estimation and one-click access to system-level login item configurations.
 
+### 7. ⚙️ Single-Tab Technical Settings Panel
+- All application options organized in a single, aligned technical view:
+  - Application & Menu Bar lifecycle behavior (Keep in Menu Bar, Launch at Login).
+  - Telemetry sampling frequency picker (High 0.5s, Normal 1.0s, Low 3.0s, Paused).
+  - Appearance mode selector (Match System, Light, Dark).
+  - Full system hardware specification readout.
+
 ### 8. 📌 Native Menu Bar Utility (`MenuBarExtra`)
-- Always-available lightweight status panel showing live CPU %, Memory %, GPU %, Network rates, and Battery condition.
-- One-click access to open the main Task Manager window or quit the app cleanly.
+- Always-available lightweight status panel showing live CPU %, GPU %, Memory %, Disk available, Network rates, and Battery condition.
 
 ---
 
@@ -134,16 +146,12 @@ Task-Manager/
 │   └── icon.png                         # High-resolution application master icon
 ├── Sources/
 │   ├── TaskManagerCore/                 # Core Telemetry & Domain Engine
-│   │   ├── Domain/
-│   │   │   ├── Hardware/                # DeviceProfile, HardwareCategory
-│   │   │   └── Metrics/                 # MetricSample, CapabilityStatus, CapabilityRecord
+│   │   ├── Domain/                      # Hardware & Metric types
 │   │   ├── HardwareInventory/           # DeviceProfileService, CapabilityRegistry
-│   │   ├── Persistence/                 # SQLiteStore (WAL), MetricRollupRepository, SettingsRepository
-│   │   ├── Services/
-│   │   │   ├── DeepLink/                # DeepLinkRouter (taskmanager://processes, performance, etc.)
-│   │   │   └── LoginItem/               # LoginItemService (SMAppService)
+│   │   ├── Persistence/                 # SQLiteStore (WAL), SettingsRepository
+│   │   ├── Services/                    # DeepLinkRouter, LoginItemService (SMAppService)
 │   │   └── SystemMetrics/
-│   │       ├── SamplingCoordinator.swift# Central telemetry coordinator & ring buffers (60s history)
+│   │       ├── SamplingCoordinator.swift# Central telemetry coordinator & 60s ring buffers
 │   │       └── Providers/
 │   │           ├── CPUProvider.swift    # Mach host_statistics64 (HOST_CPU_LOAD_INFO)
 │   │           ├── MemoryProvider.swift # Mach vm_statistics64 & dispatch memory pressure
@@ -154,19 +162,18 @@ Task-Manager/
 │   │           └── ProcessProvider.swift# libproc & NSWorkspace with SIGTERM/SIGKILL control
 │   └── TaskManagerApp/                  # Native AppKit & SwiftUI Presentation Layer
 │       ├── App/                         # TaskManagerApp, AppEnvironment
-│       ├── DesignSystem/                # Theme tokens, Metric cards, Swift Charts views
+│       ├── DesignSystem/                # Theme tokens, SparklineView, Swift Charts
 │       ├── Resources/                   # Bundled App icon and assets
 │       └── Views/
-│           ├── MainLayoutView.swift     # Windows-style SplitView sidebar & header branding
+│           ├── MainLayoutView.swift     # Sidebar with live sparklines & unified router
 │           ├── CommandPalette/          # Fast process search & tab switching (⌘K)
 │           ├── Dashboard/
-│           │   ├── ProcessesView.swift  # Process table, CPU/Memory columns, "End Task" button
-│           │   ├── PerformanceView.swift# Subtabs: CPU, Memory, GPU, Disk, Network (60s charts)
+│           │   ├── PerformanceView.swift# Unified Performance & Hardware Dashboard
+│           │   ├── ProcessesView.swift  # Process table, memory-first sort, "End Task"
 │           │   ├── StartupAppsView.swift# Startup items management (SMAppService)
-│           │   ├── HardwareCapabilitiesView.swift # Truthful hardware audit
 │           │   └── ...
 │           ├── MenuBar/                 # MenuBarContentView status popup
-│           └── Settings/                # Telemetry frequency, dark/light theme, storage
+│           └── Settings/                # Single-tab aligned technical settings view
 └── Scripts/
     └── build-app.sh                     # Assembles release 'Task Manager.app' bundle with AppIcon.icns
 ```
@@ -209,21 +216,20 @@ The script automatically converts `icon/icon.png` into a native macOS `AppIcon.i
 
 | Shortcut | Destination / Action |
 |:---|:---|
-| <kbd>⌘</kbd> + <kbd>1</kbd> | Jump to **Processes** |
-| <kbd>⌘</kbd> + <kbd>2</kbd> | Jump to **Performance** (CPU, Memory, GPU, Disk, Network) |
+| <kbd>⌘</kbd> + <kbd>1</kbd> | Jump to **Performance Dashboard** |
+| <kbd>⌘</kbd> + <kbd>2</kbd> | Jump to **Processes** |
 | <kbd>⌘</kbd> + <kbd>3</kbd> | Jump to **Startup Apps** |
-| <kbd>⌘</kbd> + <kbd>4</kbd> | Jump to **Hardware & Specs** |
-| <kbd>⌘</kbd> + <kbd>5</kbd> | Jump to **Settings** |
+| <kbd>⌘</kbd> + <kbd>4</kbd> | Jump to **Settings** |
 | <kbd>⌘</kbd> + <kbd>K</kbd> | Open **Command Palette** (Instant Process Search & End Task) |
 | <kbd>⌘</kbd> + <kbd>R</kbd> | Force Telemetry Refresh |
 
 ---
 
-## 🔒 Privacy & Offline Guarantee
+## 🔒 Privacy & Ephemeral Telemetry
 
-- **100% Offline:** The app makes zero network connections.
-- **No Background Telemetry:** No third-party tracking, crash reporting, or user telemetry is bundled.
-- **Local Embedded Storage:** Downsampled telemetry rollups are stored strictly on-device in `~/Library/Application Support/TaskManager/taskmanager.sqlite`.
+- **100% In-Memory Telemetry:** Telemetry metrics are retained strictly in 60-sample in-memory ring buffers. No long-term metric rollups are written to disk.
+- **100% Offline:** The app makes zero external network connections.
+- **Zero Third-Party SDKs:** No analytics, trackers, or crash reporting libraries are bundled.
 
 ---
 

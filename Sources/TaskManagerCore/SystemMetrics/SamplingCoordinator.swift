@@ -150,11 +150,6 @@ public final class SamplingCoordinator: ObservableObject {
             latestStorage = storageProvider.sample()
             latestBattery = batteryProvider.sample()
         }
-
-        // Rollup downsampling to SQLite if history repository is present
-        if rollupCounter % 60 == 0, let repo = rollupRepository {
-            saveRollup(repo: repo)
-        }
     }
 
     public func refreshAll() {
@@ -178,45 +173,6 @@ public final class SamplingCoordinator: ObservableObject {
         if let netVal = latestNetwork?.value {
             networkInHistory.append(netVal.totalBytesInPerSecond)
             networkOutHistory.append(netVal.totalBytesOutPerSecond)
-        }
-    }
-
-    private func saveRollup(repo: MetricRollupRepository) {
-        if let cpu = latestCPU?.value {
-            let rollup = MetricRollup(
-                metricKey: "cpu.total",
-                minValue: cpu.totalUsagePercent,
-                maxValue: cpu.totalUsagePercent,
-                avgValue: cpu.totalUsagePercent,
-                lastValue: cpu.totalUsagePercent,
-                unit: "%",
-                source: "host_statistics"
-            )
-            try? repo.insertRollup(rollup)
-        }
-        if let mem = latestMemory?.value {
-            let rollup = MetricRollup(
-                metricKey: "memory.used_percent",
-                minValue: mem.usagePercentage,
-                maxValue: mem.usagePercentage,
-                avgValue: mem.usagePercentage,
-                lastValue: mem.usagePercentage,
-                unit: "%",
-                source: "mach_vm"
-            )
-            try? repo.insertRollup(rollup)
-        }
-        if let gpu = latestGPU?.value {
-            let rollup = MetricRollup(
-                metricKey: "gpu.utilization",
-                minValue: gpu.utilizationPercent,
-                maxValue: gpu.utilizationPercent,
-                avgValue: gpu.utilizationPercent,
-                lastValue: gpu.utilizationPercent,
-                unit: "%",
-                source: "IOAccelerator"
-            )
-            try? repo.insertRollup(rollup)
         }
     }
 }

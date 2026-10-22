@@ -66,14 +66,9 @@ public struct CommandPaletteView: View {
                             .padding(.horizontal, 14)
                             .padding(.top, 8)
 
+                        navRow(title: "Performance Dashboard", icon: "gauge.with.dots.needle.bottom.50percent", destination: .dashboard)
                         navRow(title: "Processes", icon: "square.stack.3d.up.fill", destination: .processes)
-                        navRow(title: "Performance — CPU", icon: "cpu", destination: .performance(.cpu))
-                        navRow(title: "Performance — Memory", icon: "memorychip", destination: .performance(.memory))
-                        navRow(title: "Performance — GPU", icon: "display.trianglebadge.exclamationmark", destination: .performance(.gpu))
-                        navRow(title: "Performance — Disk", icon: "internaldrive", destination: .performance(.disk))
-                        navRow(title: "Performance — Network", icon: "network", destination: .performance(.network))
                         navRow(title: "Startup Apps", icon: "bolt.fill", destination: .startupApps)
-                        navRow(title: "Hardware Specifications", icon: "slider.horizontal.3", destination: .hardware)
                         navRow(title: "Settings", icon: "gearshape", destination: .settings)
                     } else {
                         // Process Search Results
@@ -141,9 +136,6 @@ public struct CommandPaletteView: View {
     private func navRow(title: String, icon: String, destination: AppDestination) -> some View {
         Button(action: {
             env.selectedDestination = destination
-            if case .performance(let subtab) = destination {
-                env.selectedPerformanceSubtab = subtab
-            }
             isPresented = false
         }) {
             HStack(spacing: 10) {

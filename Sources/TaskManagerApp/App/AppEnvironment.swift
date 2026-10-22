@@ -17,8 +17,7 @@ public final class AppEnvironment: ObservableObject {
     // Reactive State
     @Published public var deviceProfile: DeviceProfile
     @Published public var capabilities: [CapabilityRecord] = []
-    @Published public var selectedDestination: AppDestination = .processes
-    @Published public var selectedPerformanceSubtab: PerformanceSubtab = .cpu
+    @Published public var selectedDestination: AppDestination = .dashboard
     @Published public var appearanceMode: String = "system"
     @Published public var keepInMenuBar: Bool = true
     @Published public var launchAtLogin: Bool = false

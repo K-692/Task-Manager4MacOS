@@ -47,6 +47,18 @@ public struct MenuBarContentView: View {
                         .bold()
                 }
 
+                // GPU Row (Immediately after CPU)
+                HStack {
+                    Label("GPU", systemImage: "display.trianglebadge.exclamationmark")
+                        .font(.caption)
+                        .foregroundColor(.purple)
+                        .frame(width: 80, alignment: .leading)
+                    Spacer()
+                    Text(String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0))
+                        .font(.caption.monospaced())
+                        .bold()
+                }
+
                 // Memory Row
                 HStack {
                     Label("Memory", systemImage: "memorychip")
@@ -58,16 +70,17 @@ public struct MenuBarContentView: View {
                         .font(.caption.monospaced())
                 }
 
-                // GPU Row
-                HStack {
-                    Label("GPU", systemImage: "display.trianglebadge.exclamationmark")
-                        .font(.caption)
-                        .foregroundColor(.purple)
-                        .frame(width: 80, alignment: .leading)
-                    Spacer()
-                    Text(String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0))
-                        .font(.caption.monospaced())
-                        .bold()
+                // Disk Row
+                if let disk = env.samplingCoordinator.latestStorage?.value?.first {
+                    HStack {
+                        Label("Disk", systemImage: "internaldrive")
+                            .font(.caption)
+                            .foregroundColor(.emerald)
+                            .frame(width: 80, alignment: .leading)
+                        Spacer()
+                        Text("\(disk.formattedAvailable) free (\(String(format: "%.0f%%", disk.usagePercentage)))")
+                            .font(.caption.monospaced())
+                    }
                 }
 
                 // Network Row

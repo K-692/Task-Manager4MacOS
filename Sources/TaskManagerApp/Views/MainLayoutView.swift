@@ -1,7 +1,7 @@
 import SwiftUI
 import TaskManagerCore
 
-/// Main application layout with Windows Task Manager style sidebar and detail content.
+/// Main application layout with Windows Task Manager style sidebar, real-time sparklines, and unified dashboard.
 public struct MainLayoutView: View {
     @EnvironmentObject private var env: AppEnvironment
 
@@ -11,10 +11,10 @@ public struct MainLayoutView: View {
         ZStack {
             NavigationSplitView {
                 sidebarView
-                    .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 280)
+                    .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 300)
             } detail: {
                 detailView
-                    .frame(minWidth: 700, minHeight: 520)
+                    .frame(minWidth: 720, minHeight: 540)
             }
 
             // Command Palette Modal Overlay (Cmd+K)
@@ -33,20 +33,28 @@ public struct MainLayoutView: View {
     }
 
     private var sidebarView: some View {
-        List(selection: $env.selectedDestination) {
+        let sampling = env.samplingCoordinator
+        let cpu = sampling.latestCPU?.value
+        let gpu = sampling.latestGPU?.value
+        let mem = sampling.latestMemory?.value
+        let net = sampling.latestNetwork?.value
+        let disks = sampling.latestStorage?.value ?? []
+        let primaryDisk = disks.first
+
+        return List(selection: $env.selectedDestination) {
             // App Branding Header
             Section {
                 HStack(spacing: 10) {
                     appLogoImage
-                        .frame(width: 36, height: 36)
+                        .frame(width: 34, height: 34)
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
+                        .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Task Manager")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                         Text(env.deviceProfile.cpuName)
-                            .font(.system(size: 11))
+                            .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
@@ -54,16 +62,37 @@ public struct MainLayoutView: View {
                 .padding(.vertical, 4)
             }
 
-            // Software & Processes Section
-            Section("Software") {
+            // Navigation Section (Dashboard at the Top)
+            Section("Navigation") {
+                NavigationLink(value: AppDestination.dashboard) {
+                    Label {
+                        HStack {
+                            Text("Dashboard")
+                                .font(.system(size: 13, weight: .medium))
+                            Spacer()
+                            Text("Live")
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.emerald.opacity(0.15))
+                                .foregroundColor(.emerald)
+                                .clipShape(Capsule())
+                        }
+                    } icon: {
+                        Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                            .foregroundColor(.indigo)
+                    }
+                }
+
                 NavigationLink(value: AppDestination.processes) {
                     Label {
                         HStack {
                             Text("Processes")
+                                .font(.system(size: 13, weight: .medium))
                             Spacer()
-                            if let count = env.samplingCoordinator.latestProcesses?.value?.count {
+                            if let count = sampling.latestProcesses?.value?.count {
                                 Text("\(count)")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 1)
                                     .background(Color.primary.opacity(0.08))
@@ -72,83 +101,166 @@ public struct MainLayoutView: View {
                             }
                         }
                     } icon: {
-                        Image(systemName: "square.stack.3d.up.fill").foregroundColor(.indigo)
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .foregroundColor(.indigo)
                     }
                 }
 
                 NavigationLink(value: AppDestination.startupApps) {
-                    Label("Startup Apps", systemImage: "bolt.fill").foregroundColor(.amber)
-                }
-            }
-
-            // Hardware & Performance Section
-            Section("Performance & Hardware") {
-                NavigationLink(value: AppDestination.performance(.cpu)) {
-                    Label {
-                        HStack {
-                            Text("CPU")
-                            Spacer()
-                            if let cpu = env.samplingCoordinator.latestCPU?.value {
-                                Text(String(format: "%.0f%%", cpu.totalUsagePercent))
-                                    .font(.caption2.monospaced())
-                                    .foregroundColor(.indigo)
-                            }
-                        }
-                    } icon: {
-                        Image(systemName: "cpu").foregroundColor(.indigo)
-                    }
+                    Label("Startup Apps", systemImage: "bolt.fill")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.amber)
                 }
 
-                NavigationLink(value: AppDestination.performance(.memory)) {
-                    Label {
-                        HStack {
-                            Text("Memory")
-                            Spacer()
-                            if let mem = env.samplingCoordinator.latestMemory?.value {
-                                Text(String(format: "%.0f%%", mem.usagePercentage))
-                                    .font(.caption2.monospaced())
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    } icon: {
-                        Image(systemName: "memorychip").foregroundColor(.blue)
-                    }
-                }
-
-                NavigationLink(value: AppDestination.performance(.gpu)) {
-                    Label {
-                        HStack {
-                            Text("GPU")
-                            Spacer()
-                            if let gpu = env.samplingCoordinator.latestGPU?.value {
-                                Text(String(format: "%.0f%%", gpu.utilizationPercent))
-                                    .font(.caption2.monospaced())
-                                    .foregroundColor(.purple)
-                            }
-                        }
-                    } icon: {
-                        Image(systemName: "display.trianglebadge.exclamationmark").foregroundColor(.purple)
-                    }
-                }
-
-                NavigationLink(value: AppDestination.performance(.disk)) {
-                    Label("Disk", systemImage: "internaldrive").foregroundColor(.emerald)
-                }
-
-                NavigationLink(value: AppDestination.performance(.network)) {
-                    Label("Network", systemImage: "network").foregroundColor(.cyan)
-                }
-
-                NavigationLink(value: AppDestination.hardware) {
-                    Label("Hardware & Specs", systemImage: "slider.horizontal.3").foregroundColor(.secondary)
-                }
-            }
-
-            // System Section
-            Section("System") {
                 NavigationLink(value: AppDestination.settings) {
-                    Label("Settings", systemImage: "gearshape").foregroundColor(.secondary)
+                    Label("Settings", systemImage: "gearshape")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
+            }
+
+            // Real-Time Hardware Telemetry in Order: CPU -> GPU -> Memory -> Disk -> Network
+            Section("Live Hardware Telemetry") {
+                // 1. CPU Row (CPU - Graph - %)
+                Button(action: { env.selectedDestination = .dashboard }) {
+                    HStack(spacing: 8) {
+                        Label("CPU", systemImage: "cpu")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.indigo)
+                            .frame(width: 60, alignment: .leading)
+
+                        Spacer()
+
+                        SparklineView(
+                            data: sampling.cpuHistory.values.isEmpty ? [0, 0] : sampling.cpuHistory.values,
+                            minVal: 0,
+                            maxVal: 100,
+                            tint: .indigo
+                        )
+
+                        Text(String(format: "%2.0f%%", cpu?.totalUsagePercent ?? 0.0))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .frame(width: 36, alignment: .trailing)
+                    }
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // 2. GPU Row (GPU immediately after CPU!)
+                Button(action: { env.selectedDestination = .dashboard }) {
+                    HStack(spacing: 8) {
+                        Label("GPU", systemImage: "display.trianglebadge.exclamationmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.purple)
+                            .frame(width: 60, alignment: .leading)
+
+                        Spacer()
+
+                        SparklineView(
+                            data: sampling.gpuHistory.values.isEmpty ? [0, 0] : sampling.gpuHistory.values,
+                            minVal: 0,
+                            maxVal: 100,
+                            tint: .purple
+                        )
+
+                        Text(String(format: "%2.0f%%", gpu?.utilizationPercent ?? 0.0))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .frame(width: 36, alignment: .trailing)
+                    }
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // 3. Memory Row
+                Button(action: { env.selectedDestination = .dashboard }) {
+                    HStack(spacing: 8) {
+                        Label("Memory", systemImage: "memorychip")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 60, alignment: .leading)
+
+                        Spacer()
+
+                        SparklineView(
+                            data: sampling.memoryHistory.values.isEmpty ? [0, 0] : sampling.memoryHistory.values,
+                            minVal: 0,
+                            maxVal: 100,
+                            tint: .blue
+                        )
+
+                        Text(String(format: "%2.0f%%", mem?.usagePercentage ?? 0.0))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .frame(width: 36, alignment: .trailing)
+                    }
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // 4. Disk Row
+                Button(action: { env.selectedDestination = .dashboard }) {
+                    HStack(spacing: 8) {
+                        Label("Disk", systemImage: "internaldrive")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.emerald)
+                            .frame(width: 60, alignment: .leading)
+
+                        Spacer()
+
+                        // Mini Disk Gauge
+                        GeometryReader { geo in
+                            let usedPct = (primaryDisk?.usagePercentage ?? 0.0) / 100.0
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 2).fill(Color.primary.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 2).fill(Color.emerald).frame(width: geo.size.width * CGFloat(usedPct))
+                            }
+                        }
+                        .frame(width: 52, height: 6)
+
+                        Text(String(format: "%2.0f%%", primaryDisk?.usagePercentage ?? 0.0))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .frame(width: 36, alignment: .trailing)
+                    }
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                // 5. Network Row
+                Button(action: { env.selectedDestination = .dashboard }) {
+                    HStack(spacing: 8) {
+                        Label("Network", systemImage: "network")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.cyan)
+                            .frame(width: 60, alignment: .leading)
+
+                        Spacer()
+
+                        let netHistory = sampling.networkInHistory.values
+                        let maxNet = max(1024.0, netHistory.max() ?? 1024.0)
+                        SparklineView(
+                            data: netHistory.isEmpty ? [0, 0] : netHistory,
+                            minVal: 0,
+                            maxVal: maxNet,
+                            tint: .cyan
+                        )
+
+                        Text(formatCompactRate(net?.totalBytesInPerSecond ?? 0.0))
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .frame(width: 50, alignment: .trailing)
+                            .lineLimit(1)
+                    }
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .listStyle(.sidebar)
@@ -174,21 +286,24 @@ public struct MainLayoutView: View {
     @ViewBuilder
     private var detailView: some View {
         switch env.selectedDestination {
-        case .processes:
-            ProcessesView(sampling: env.samplingCoordinator)
-        case .performance(let subtab):
+        case .dashboard:
             PerformanceView(sampling: env.samplingCoordinator)
-                .onAppear {
-                    env.selectedPerformanceSubtab = subtab
-                }
-        case .appHistory:
+        case .processes:
             ProcessesView(sampling: env.samplingCoordinator)
         case .startupApps:
             StartupAppsView()
-        case .hardware:
-            HardwareCapabilitiesView()
         case .settings:
             SettingsView()
+        }
+    }
+
+    private func formatCompactRate(_ bytesPerSec: Double) -> String {
+        if bytesPerSec >= 1_048_576 {
+            return String(format: "%.1fM", bytesPerSec / 1_048_576)
+        } else if bytesPerSec >= 1024 {
+            return String(format: "%.0fK", bytesPerSec / 1024)
+        } else {
+            return String(format: "%.0fB", bytesPerSec)
         }
     }
 

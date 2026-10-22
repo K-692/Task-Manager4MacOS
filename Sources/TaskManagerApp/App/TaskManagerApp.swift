@@ -26,13 +26,13 @@ struct TaskManagerApp: App {
             }
 
             CommandMenu("View") {
-                Button("Processes") {
-                    env.selectedDestination = .processes
+                Button("Performance Dashboard") {
+                    env.selectedDestination = .dashboard
                 }
                 .keyboardShortcut("1", modifiers: .command)
 
-                Button("Performance") {
-                    env.selectedDestination = .performance(.cpu)
+                Button("Processes") {
+                    env.selectedDestination = .processes
                 }
                 .keyboardShortcut("2", modifiers: .command)
 
@@ -41,15 +41,10 @@ struct TaskManagerApp: App {
                 }
                 .keyboardShortcut("3", modifiers: .command)
 
-                Button("Hardware & Specs") {
-                    env.selectedDestination = .hardware
-                }
-                .keyboardShortcut("4", modifiers: .command)
-
                 Button("Settings") {
                     env.selectedDestination = .settings
                 }
-                .keyboardShortcut("5", modifiers: .command)
+                .keyboardShortcut("4", modifiers: .command)
 
                 Divider()
 

@@ -6,7 +6,7 @@ public struct ProcessesView: View {
     @EnvironmentObject private var env: AppEnvironment
     @ObservedObject private var sampling: SamplingCoordinator
     @State private var filterQuery: String = ""
-    @State private var sortKey: String = "cpu" // "cpu", "memory", "name", "pid"
+    @State private var sortKey: String = "memory" // default: "memory", "cpu", "name", "pid"
     @State private var selectedPID: Int32? = nil
     @State private var showTerminationAlert: Bool = false
     @State private var terminationErrorMessage: String? = nil
