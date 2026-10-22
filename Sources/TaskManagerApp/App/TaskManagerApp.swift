@@ -121,47 +121,28 @@ private struct MenuBarStatusLabel: View {
         let netOut = sampling.latestNetwork?.value?.totalBytesOutPerSecond ?? 0.0
         let netFormatted = formatCompactRate(netIn + netOut)
 
-        let hasAny = env.menuBarShowCPU || env.menuBarShowGPU || env.menuBarShowMemory || env.menuBarShowDisk || env.menuBarShowNetwork
-
-        HStack(spacing: 4) {
-            if env.menuBarShowCPU || !hasAny {
-                HStack(spacing: 2) {
-                    Image(systemName: "cpu")
-                    Text("\(cpu)%")
-                        .monospacedDigit()
-                }
-            }
-
-            if env.menuBarShowGPU {
-                HStack(spacing: 2) {
-                    Image(systemName: "display.trianglebadge.exclamationmark")
-                    Text("\(gpu)%")
-                        .monospacedDigit()
-                }
-            }
-
-            if env.menuBarShowMemory {
-                HStack(spacing: 2) {
-                    Image(systemName: "memorychip")
-                    Text("\(mem)%")
-                        .monospacedDigit()
-                }
-            }
-
-            if env.menuBarShowDisk {
-                HStack(spacing: 2) {
-                    Image(systemName: "internaldrive")
-                    Text("\(disk)%")
-                        .monospacedDigit()
-                }
-            }
-
-            if env.menuBarShowNetwork {
-                HStack(spacing: 2) {
-                    Image(systemName: "network")
-                    Text(netFormatted)
-                        .monospacedDigit()
-                }
+        HStack(spacing: 3) {
+            switch env.selectedMenuBarMetric {
+            case .cpu:
+                Image(systemName: "cpu")
+                Text("\(cpu)%")
+                    .monospacedDigit()
+            case .gpu:
+                Image(systemName: "display.trianglebadge.exclamationmark")
+                Text("\(gpu)%")
+                    .monospacedDigit()
+            case .memory:
+                Image(systemName: "memorychip")
+                Text("\(mem)%")
+                    .monospacedDigit()
+            case .disk:
+                Image(systemName: "internaldrive")
+                Text("\(disk)%")
+                    .monospacedDigit()
+            case .network:
+                Image(systemName: "network")
+                Text(netFormatted)
+                    .monospacedDigit()
             }
         }
     }

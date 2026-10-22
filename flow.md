@@ -1,7 +1,7 @@
 # Task Manager for macOS — Implementation Architecture & Research Journey
 
 **Document Purpose:** Living architecture specification, research paper reference, and end-to-end technical implementation log for the **Task Manager for macOS** desktop platform.  
-**Version:** 2.3.0  
+**Version:** 2.4.0  
 **Target Platform:** macOS 13.0+ (Ventura, Sonoma, Sequoia)  
 **Binary Architecture:** Universal (`arm64` Apple Silicon + `x86_64` Intel)  
 **License:** MIT License  
@@ -147,6 +147,12 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 - **Settings Layout Boundary Tightening:** Snug element boundaries with `CardView(padding: 12)`, reduced inter-section spacing (10pt), compact row vertical rhythm (8pt), and tight horizontal margins (18pt).
 - **Customizable macOS Menu Bar Widget:** Built dynamic metric selector chips in the Settings tab allowing users to toggle any combination of **CPU**, **GPU**, **Memory**, **Disk**, and **Network** for display on the top status bar, backed by instant live preview and persistent storage in `SettingsRepository`.
 - **macOS Desktop Widget Architecture:** Produced `Documentation/DesktopWidgetGuide.md` providing end-to-end WidgetKit architecture, App Groups shared memory caching, and `TimelineProvider` implementation for macOS Sonoma/Sequoia Desktop Widgets.
+
+### Phase 6: Non-Scrollable Settings Tab, Single-Selection Menu Bar Widget & Telemetry Cadence Refinement (v2.4.0)
+- **Completely Non-Scrollable Settings Panel:** Removed the outer `ScrollView` entirely from `SettingsView`. Re-engineered the panel using compact vertical rhythm (~480pt total content height) so that all 4 settings cards fit neatly and comfortably within the standard window viewport ($\ge 540$pt) without any vertical scrollbars.
+- **Single-Selection Menu Bar Widget (`MenuBarMetric`):** Implemented single-selection radio chips (`record.circle.fill` / `circle`) across CPU, GPU, Memory, Disk, and Network. Since the macOS menu bar displays only one icon and live telemetry metric at a time, selecting an item automatically deselects all others, updates the live menu bar preview ribbon, stores the selection in `SettingsRepository` under `"menubar_selected_metric"`, and renders the chosen metric in `MenuBarStatusLabel`.
+- **Telemetry & Sample Rate Layout Redesign:** Completely resolved the vertical dead space bug and clipped picker buttons. Replaced the native picker with custom, high-contrast segmented cadence pills (`0.5s Fast`, `1.0s Normal`, `3.0s Eco`, `Pause`), added an active cadence status indicator, and reinforced the volatile 60-sample in-memory ring buffer architecture.
+- **High-Density 2-Column Hardware Specifications Grid:** Converted technical specifications into a responsive 2-column `LazyVGrid` (3 rows total) displaying Device Model, Architecture, Processor, Installed RAM, Graphics (GPU) right alongside Processor, and macOS build with an offline status badge.
 
 ---
 

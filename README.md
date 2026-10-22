@@ -44,7 +44,7 @@
 - **True GPU Visualization:** Real-time GPU load percentage, renderer utilization, tiler utilization, and allocated/in-use VRAM directly from Apple Silicon & discrete GPUs.
 - **Memory-First Process Sorting:** Processes default-sorted by physical resident memory footprint for instant leak detection, with instant "End Task" process control.
 - **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear. No SQLite metric rollups $>60$ seconds.
-- **Single-Tab Technical Settings:** Cleanly aligned, organized configuration options in one unified panel with standardized 320pt controls.
+- **Single-Tab Non-Scrollable Settings:** Cleanly aligned, compact configuration options in one unified, non-scrollable panel fitting neatly within the window viewport.
 
 ---
 
@@ -114,10 +114,13 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - **VRAM / Unified Memory Tracking:** Real-time allocated system memory and active in-use VRAM.
 - **Metal Hardware Profile:** Dynamic device identification via Apple Metal (`MTLCopyAllDevices`).
 
-### 7. ⚙️ Single-Tab Tight Settings & Menu Bar Customization
-- **Tight Element Boundaries:** Clean, snug element boundaries with compact spacing and crisp contours.
-- **Customizable Menu Bar Widget:** Toggle any combination of **CPU**, **GPU**, **Memory**, **Disk**, and **Network** metrics to appear on the macOS menu bar with instant live preview.
-- **Unified Controls:** Standardized pickers for Telemetry Update Frequency (`0.5s`, `1.0s`, `3.0s`, `Pause`) and Appearance (`System`, `Light`, `Dark`).
+### 7. ⚙️ Non-Scrollable Settings & Single-Selection Menu Bar Widget
+- **100% Non-Scrollable Layout:** Entire settings panel fits comfortably inside the macOS window without vertical scrollbars.
+- **Single-Selection Menu Bar Widget:** Select which hardware component (**CPU**, **GPU**, **Memory**, **Disk**, or **Network**) is visible on the macOS top status bar using single-selection radio chips, as only one icon and live telemetry metric can be displayed cleanly at a time.
+- **Live Menu Bar Preview Ribbon:** Immediate simulated preview of the active menu bar status item with a one-click "Reset to CPU" option.
+- **Telemetry & Sample Rate Control:** Custom segmented cadence pills (`0.5s Fast`, `1.0s Normal`, `3.0s Eco`, `Pause`) with active interval badge and explicit volatile in-memory ring buffer architecture (zero disk writes).
+- **Appearance & Theme:** System, Light, and Dark mode selectors with instant interface adaptation.
+- **Aligned 2-Column Hardware Specs:** Technical specifications (Device Model, Architecture, Processor, Installed RAM, Graphics GPU, OS Build) organized in a clean 2-column grid.
 - **Desktop Widget Blueprint:** See [`Documentation/DesktopWidgetGuide.md`](Documentation/DesktopWidgetGuide.md) for full architectural patterns and Swift source code to add native macOS Sonoma/Sequoia Desktop Widgets.
 
 ---

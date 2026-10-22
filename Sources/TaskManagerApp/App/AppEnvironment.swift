@@ -3,6 +3,35 @@ import SwiftUI
 import Combine
 import TaskManagerCore
 
+/// Supported components for the single-icon macOS menu bar widget.
+public enum MenuBarMetric: String, CaseIterable, Codable {
+    case cpu = "cpu"
+    case gpu = "gpu"
+    case memory = "memory"
+    case disk = "disk"
+    case network = "network"
+
+    public var title: String {
+        switch self {
+        case .cpu: return "CPU"
+        case .gpu: return "GPU"
+        case .memory: return "Memory"
+        case .disk: return "Disk"
+        case .network: return "Network"
+        }
+    }
+
+    public var icon: String {
+        switch self {
+        case .cpu: return "cpu"
+        case .gpu: return "display.trianglebadge.exclamationmark"
+        case .memory: return "memorychip"
+        case .disk: return "internaldrive"
+        case .network: return "network"
+        }
+    }
+}
+
 /// Observable global environment holding system services, settings, and performance state.
 @MainActor
 public final class AppEnvironment: ObservableObject {
@@ -25,21 +54,33 @@ public final class AppEnvironment: ObservableObject {
     @Published public var selectedProcessPID: Int32? = nil
     @Published public var isCommandPalettePresented: Bool = false
 
-    // Menu Bar Display Customization
-    @Published public var menuBarShowCPU: Bool = true {
-        didSet { try? settingsRepo.setBool(key: "menubar_show_cpu", value: menuBarShowCPU) }
+    // Menu Bar Display Customization (Single-Selection: only one component active on macOS menu bar)
+    @Published public var selectedMenuBarMetric: MenuBarMetric = .cpu {
+        didSet {
+            try? settingsRepo.set(key: "menubar_selected_metric", value: selectedMenuBarMetric.rawValue)
+        }
     }
-    @Published public var menuBarShowGPU: Bool = true {
-        didSet { try? settingsRepo.setBool(key: "menubar_show_gpu", value: menuBarShowGPU) }
+
+    // Backwards-compatible accessors
+    public var menuBarShowCPU: Bool {
+        get { selectedMenuBarMetric == .cpu }
+        set { if newValue { selectedMenuBarMetric = .cpu } }
     }
-    @Published public var menuBarShowMemory: Bool = false {
-        didSet { try? settingsRepo.setBool(key: "menubar_show_memory", value: menuBarShowMemory) }
+    public var menuBarShowGPU: Bool {
+        get { selectedMenuBarMetric == .gpu }
+        set { if newValue { selectedMenuBarMetric = .gpu } }
     }
-    @Published public var menuBarShowDisk: Bool = false {
-        didSet { try? settingsRepo.setBool(key: "menubar_show_disk", value: menuBarShowDisk) }
+    public var menuBarShowMemory: Bool {
+        get { selectedMenuBarMetric == .memory }
+        set { if newValue { selectedMenuBarMetric = .memory } }
     }
-    @Published public var menuBarShowNetwork: Bool = false {
-        didSet { try? settingsRepo.setBool(key: "menubar_show_network", value: menuBarShowNetwork) }
+    public var menuBarShowDisk: Bool {
+        get { selectedMenuBarMetric == .disk }
+        set { if newValue { selectedMenuBarMetric = .disk } }
+    }
+    public var menuBarShowNetwork: Bool {
+        get { selectedMenuBarMetric == .network }
+        set { if newValue { selectedMenuBarMetric = .network } }
     }
 
     private var cancellables = Set<AnyCancellable>()
@@ -89,11 +130,8 @@ public final class AppEnvironment: ObservableObject {
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
             self.keepInMenuBar = sRepo.getBool(key: "keep_in_menu_bar", default: true)
             self.launchAtLogin = loginItemService.isEnabled
-            self.menuBarShowCPU = sRepo.getBool(key: "menubar_show_cpu", default: true)
-            self.menuBarShowGPU = sRepo.getBool(key: "menubar_show_gpu", default: true)
-            self.menuBarShowMemory = sRepo.getBool(key: "menubar_show_memory", default: false)
-            self.menuBarShowDisk = sRepo.getBool(key: "menubar_show_disk", default: false)
-            self.menuBarShowNetwork = sRepo.getBool(key: "menubar_show_network", default: false)
+            let savedMetric = sRepo.getString(key: "menubar_selected_metric", default: "cpu")
+            self.selectedMenuBarMetric = MenuBarMetric(rawValue: savedMetric) ?? .cpu
 
             reloadCapabilities()
         } catch {
