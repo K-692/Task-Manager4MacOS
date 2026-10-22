@@ -40,7 +40,7 @@ public struct HardwareCapabilitiesView: View {
                     }
                     Spacer()
                     Button(action: {
-                        env.reloadAll()
+                        env.reloadCapabilities()
                     }) {
                         Label("Re-scan Hardware", systemImage: "arrow.clockwise")
                     }

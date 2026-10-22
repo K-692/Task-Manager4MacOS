@@ -9,7 +9,7 @@ struct TaskManagerApp: App {
         WindowGroup("Task Manager") {
             MainLayoutView()
                 .environmentObject(env)
-                .frame(minWidth: 900, minHeight: 600)
+                .frame(minWidth: 950, minHeight: 620)
                 .preferredColorScheme(colorScheme)
                 .onOpenURL { url in
                     handleDeepLink(url)
@@ -19,59 +19,49 @@ struct TaskManagerApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("New Task") {
-                    env.selectedDestination = .inbox
-                }
-                .keyboardShortcut("n", modifiers: .command)
-
                 Button("Command Palette...") {
                     env.isCommandPalettePresented.toggle()
                 }
                 .keyboardShortcut("k", modifiers: .command)
             }
 
-            CommandMenu("Navigate") {
-                Button("Today") {
-                    env.selectedDestination = .today
+            CommandMenu("View") {
+                Button("Processes") {
+                    env.selectedDestination = .processes
                 }
                 .keyboardShortcut("1", modifiers: .command)
 
-                Button("Inbox") {
-                    env.selectedDestination = .inbox
+                Button("Performance") {
+                    env.selectedDestination = .performance(.cpu)
                 }
                 .keyboardShortcut("2", modifiers: .command)
 
-                Button("Upcoming") {
-                    env.selectedDestination = .upcoming
+                Button("Startup Apps") {
+                    env.selectedDestination = .startupApps
                 }
                 .keyboardShortcut("3", modifiers: .command)
 
-                Button("All Tasks") {
-                    env.selectedDestination = .allTasks
+                Button("Hardware & Specs") {
+                    env.selectedDestination = .hardware
                 }
                 .keyboardShortcut("4", modifiers: .command)
 
-                Divider()
-
-                Button("Mac Overview") {
-                    env.selectedDestination = .macOverview
+                Button("Settings") {
+                    env.selectedDestination = .settings
                 }
                 .keyboardShortcut("5", modifiers: .command)
 
-                Button("Performance Monitor") {
-                    env.selectedDestination = .performance
-                }
-                .keyboardShortcut("6", modifiers: .command)
+                Divider()
 
-                Button("Hardware & Capabilities") {
-                    env.selectedDestination = .hardwareCapabilities
+                Button("Refresh Now") {
+                    env.samplingCoordinator.refreshAll()
                 }
-                .keyboardShortcut("7", modifiers: .command)
+                .keyboardShortcut("r", modifiers: .command)
             }
         }
 
-        // Always-available MenuBarExtra
-        MenuBarExtra("Task Manager", systemImage: "checkmark.circle.fill") {
+        // Native Menu Bar Utility
+        MenuBarExtra("Task Manager", systemImage: "cpu") {
             MenuBarContentView()
                 .environmentObject(env)
         }
@@ -87,11 +77,8 @@ struct TaskManagerApp: App {
     }
 
     private func handleDeepLink(_ url: URL) {
-        if let route = DeepLinkRouter.destination(from: url) {
-            env.selectedDestination = route.destination
-            if route.openCapture {
-                env.isCommandPalettePresented = true
-            }
+        if let dest = DeepLinkRouter.destination(from: url) {
+            env.selectedDestination = dest
         }
     }
 }

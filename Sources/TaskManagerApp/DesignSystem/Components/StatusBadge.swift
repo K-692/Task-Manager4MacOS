@@ -49,36 +49,3 @@ public struct StatusBadge: View {
         }
     }
 }
-
-/// Visual badge representing task priority levels.
-public struct PriorityBadge: View {
-    public let priority: TaskPriority
-
-    public init(priority: TaskPriority) {
-        self.priority = priority
-    }
-
-    public var body: some View {
-        HStack(spacing: 3) {
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
-            Text(priority.displayName)
-                .font(.system(size: 11, weight: .medium))
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(color.opacity(0.12))
-        .foregroundColor(color)
-        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-    }
-
-    private var color: Color {
-        switch priority {
-        case .low: return .slate
-        case .normal: return .blue
-        case .high: return .amber
-        case .urgent: return .rose
-        }
-    }
-}

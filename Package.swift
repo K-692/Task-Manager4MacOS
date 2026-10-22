@@ -15,10 +15,6 @@ let package = Package(
         .library(
             name: "TaskManagerCore",
             targets: ["TaskManagerCore"]
-        ),
-        .executable(
-            name: "TaskManagerTestRunner",
-            targets: ["TaskManagerTestRunner"]
         )
     ],
     dependencies: [],
@@ -33,14 +29,10 @@ let package = Package(
             dependencies: [
                 "TaskManagerCore"
             ],
-            path: "Sources/TaskManagerApp"
-        ),
-        .executableTarget(
-            name: "TaskManagerTestRunner",
-            dependencies: [
-                "TaskManagerCore"
-            ],
-            path: "Tests/TaskManagerTestRunner"
+            path: "Sources/TaskManagerApp",
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )

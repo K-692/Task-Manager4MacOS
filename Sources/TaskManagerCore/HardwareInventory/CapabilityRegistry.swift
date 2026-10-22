@@ -7,6 +7,7 @@ public final class CapabilityRegistry: Sendable {
     private let profileService: DeviceProfileService
     private let cpuProvider: CPUProvider
     private let memoryProvider: MemoryProvider
+    private let gpuProvider: GPUProvider
     private let storageProvider: StorageProvider
     private let batteryProvider: BatteryProvider
     private let networkProvider: NetworkProvider
@@ -15,6 +16,7 @@ public final class CapabilityRegistry: Sendable {
         profileService: DeviceProfileService = DeviceProfileService(),
         cpuProvider: CPUProvider = CPUProvider(),
         memoryProvider: MemoryProvider = MemoryProvider(),
+        gpuProvider: GPUProvider = GPUProvider(),
         storageProvider: StorageProvider = StorageProvider(),
         batteryProvider: BatteryProvider = BatteryProvider(),
         networkProvider: NetworkProvider = NetworkProvider()
@@ -22,6 +24,7 @@ public final class CapabilityRegistry: Sendable {
         self.profileService = profileService
         self.cpuProvider = cpuProvider
         self.memoryProvider = memoryProvider
+        self.gpuProvider = gpuProvider
         self.storageProvider = storageProvider
         self.batteryProvider = batteryProvider
         self.networkProvider = networkProvider
@@ -73,60 +76,61 @@ public final class CapabilityRegistry: Sendable {
                 confidence: .derived
             ))
         }
-        records.append(CapabilityRecord(
-            id: "cpu.cluster_breakdown",
-            category: .compute,
-            displayName: "Performance / Efficiency Core Split",
-            valueString: nil,
-            status: .notExposedBySupportedAPI,
-            source: "Darwin sysctl",
-            explanation: "macOS does not provide a supported public API to query raw P/E core topology breakdown.",
-            confidence: .partial
-        ))
 
-        // 2. GPU / Graphics
-        records.append(CapabilityRecord(
-            id: "gpu.devices",
-            category: .gpu,
-            displayName: "Graphics Processors",
-            valueString: profile.gpuNames.joined(separator: ", "),
-            status: .available,
-            source: "Metal (MTLCopyAllDevices)",
-            confidence: .exact
-        ))
-        records.append(CapabilityRecord(
-            id: "gpu.utilization",
-            category: .gpu,
-            displayName: "GPU Utilization",
-            valueString: nil,
-            status: .notExposedBySupportedAPI,
-            source: "Apple Metal Framework",
-            explanation: "macOS does not expose real-time GPU load percentages through public non-privileged APIs.",
-            confidence: .partial
-        ))
+        // 2. GPU / Graphics (Live telemetry via IOKit IOAccelerator & Metal)
+        let gpuSample = gpuProvider.sample()
+        if let gpu = gpuSample.value {
+            records.append(CapabilityRecord(
+                id: "gpu.devices",
+                category: .gpu,
+                displayName: "Graphics Processor",
+                valueString: gpu.deviceName,
+                status: .available,
+                source: "Metal (MTLCopyAllDevices)",
+                confidence: .exact
+            ))
+            records.append(CapabilityRecord(
+                id: "gpu.utilization",
+                category: .gpu,
+                displayName: "GPU Utilization",
+                valueString: String(format: "%.1f%%", gpu.utilizationPercent),
+                unit: "%",
+                status: .available,
+                source: "IOKit IOAccelerator (PerformanceStatistics)",
+                confidence: .exact
+            ))
+            records.append(CapabilityRecord(
+                id: "gpu.renderer_util",
+                category: .gpu,
+                displayName: "Renderer Load",
+                valueString: String(format: "%.1f%%", gpu.rendererUtilizationPercent),
+                unit: "%",
+                status: .available,
+                source: "IOKit IOAccelerator",
+                confidence: .exact
+            ))
+            records.append(CapabilityRecord(
+                id: "gpu.tiler_util",
+                category: .gpu,
+                displayName: "Tiler Load",
+                valueString: String(format: "%.1f%%", gpu.tilerUtilizationPercent),
+                unit: "%",
+                status: .available,
+                source: "IOKit IOAccelerator",
+                confidence: .exact
+            ))
+            records.append(CapabilityRecord(
+                id: "gpu.memory_allocated",
+                category: .gpu,
+                displayName: "GPU System Memory In Use",
+                valueString: gpu.formattedInUseMemory,
+                status: .available,
+                source: "IOKit / Metal (currentAllocatedSize)",
+                confidence: .exact
+            ))
+        }
 
-        // 3. Neural Engine / ML
-        records.append(CapabilityRecord(
-            id: "neural.coreml",
-            category: .compute,
-            displayName: "Machine Learning Acceleration",
-            valueString: profile.isAppleSilicon ? "Apple Neural Engine (ANE)" : "CPU Vector Extensions",
-            status: .available,
-            source: "Core ML Runtime",
-            confidence: .derived
-        ))
-        records.append(CapabilityRecord(
-            id: "neural.telemetry",
-            category: .compute,
-            displayName: "Neural Engine Telemetry",
-            valueString: nil,
-            status: .notExposedBySupportedAPI,
-            source: "Apple Silicon ANE",
-            explanation: "Detailed Neural Engine clocks, core counts, and load are not exposed by supported APIs.",
-            confidence: .partial
-        ))
-
-        // 4. Memory
+        // 3. Memory
         records.append(CapabilityRecord(
             id: "memory.installed",
             category: .memory,
@@ -158,7 +162,7 @@ public final class CapabilityRegistry: Sendable {
             ))
         }
 
-        // 5. Displays
+        // 4. Displays
         records.append(CapabilityRecord(
             id: "display.count",
             category: .displays,
@@ -182,7 +186,7 @@ public final class CapabilityRegistry: Sendable {
             ))
         }
 
-        // 6. Battery & Power
+        // 5. Battery & Power
         let batterySample = batteryProvider.sample()
         if let bat = batterySample.value {
             records.append(CapabilityRecord(
@@ -203,17 +207,6 @@ public final class CapabilityRegistry: Sendable {
                 source: "IOKit Power Sources",
                 confidence: .exact
             ))
-            if let cycle = bat.cycleCount {
-                records.append(CapabilityRecord(
-                    id: "battery.cycle_count",
-                    category: .battery,
-                    displayName: "Cycle Count",
-                    valueString: "\(cycle)",
-                    status: .available,
-                    source: "IOKit Power Sources",
-                    confidence: .exact
-                ))
-            }
         } else {
             records.append(CapabilityRecord(
                 id: "battery.presence",
@@ -222,12 +215,12 @@ public final class CapabilityRegistry: Sendable {
                 valueString: nil,
                 status: batterySample.status,
                 source: "IOKit Power Sources",
-                explanation: batterySample.reason ?? "No internal battery present on this Mac model.",
+                explanation: batterySample.reason ?? "Desktop Mac configuration without internal battery.",
                 confidence: .exact
             ))
         }
 
-        // 7. Storage
+        // 6. Storage
         let storageSample = storageProvider.sample()
         if let volumes = storageSample.value {
             records.append(CapabilityRecord(
@@ -251,18 +244,8 @@ public final class CapabilityRegistry: Sendable {
                 ))
             }
         }
-        records.append(CapabilityRecord(
-            id: "storage.smart",
-            category: .storage,
-            displayName: "Drive SMART Diagnostics",
-            valueString: nil,
-            status: .notExposedBySupportedAPI,
-            source: "DiskArbitration / IOKit",
-            explanation: "SMART status requires kernel privileges or external disk utilities.",
-            confidence: .partial
-        ))
 
-        // 8. Network
+        // 7. Network
         let netSample = networkProvider.sample()
         if let net = netSample.value {
             records.append(CapabilityRecord(
@@ -284,18 +267,8 @@ public final class CapabilityRegistry: Sendable {
                 confidence: .exact
             ))
         }
-        records.append(CapabilityRecord(
-            id: "network.wifi_ssid",
-            category: .network,
-            displayName: "Wi-Fi Network Name (SSID)",
-            valueString: nil,
-            status: .permissionRequired(permission: "Location Services"),
-            source: "CoreWLAN",
-            explanation: "Reading current Wi-Fi SSID requires macOS Location permission.",
-            confidence: .partial
-        ))
 
-        // 9. Thermal & Cooling
+        // 8. Thermal & Cooling
         let thermalState = ProcessInfo.processInfo.thermalState
         let thermalString: String
         switch thermalState {
@@ -313,27 +286,6 @@ public final class CapabilityRegistry: Sendable {
             status: .available,
             source: "ProcessInfo.thermalState",
             confidence: .exact
-        ))
-        records.append(CapabilityRecord(
-            id: "thermal.fan_rpm",
-            category: .thermal,
-            displayName: "Cooling Fan RPM",
-            valueString: nil,
-            status: .notExposedBySupportedAPI,
-            source: "Apple SMC",
-            explanation: "Fan RPM and raw temperatures are not exposed through supported public Apple APIs without undocumented SMC access.",
-            confidence: .partial
-        ))
-
-        // 10. Peripherals & Audio
-        records.append(CapabilityRecord(
-            id: "peripherals.audio_output",
-            category: .peripherals,
-            displayName: "Audio Output System",
-            valueString: "CoreAudio Default Device",
-            status: .available,
-            source: "CoreAudio",
-            confidence: .derived
         ))
 
         return records

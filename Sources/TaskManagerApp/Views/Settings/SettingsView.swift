@@ -1,13 +1,13 @@
 import SwiftUI
 import TaskManagerCore
 
-/// Settings view: user preferences, appearance, notifications, backup, and privacy.
+/// Settings view: user preferences, appearance, sampling rate, database storage, and about info.
 public struct SettingsView: View {
     @EnvironmentObject private var env: AppEnvironment
     @State private var selectedTab: String = "general"
-    @State private var notificationStatus: String = "Checking..."
-    @State private var exportMessage: String? = nil
+    @State private var statusMessage: String? = nil
     @State private var isResetConfirmationPresented: Bool = false
+    @State private var updateSpeed: Double = 1.0
 
     public init() {}
 
@@ -18,7 +18,7 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Settings")
                         .font(.system(size: 26, weight: .bold))
-                    Text("Configure Task Manager, customize appearance, manage backups and privacy.")
+                    Text("Configure Task Manager, customize telemetry sampling, and view app information.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -29,8 +29,7 @@ public struct SettingsView: View {
                 HStack(spacing: 8) {
                     tabButton(id: "general", label: "General", icon: "gearshape")
                     tabButton(id: "appearance", label: "Appearance", icon: "paintpalette")
-                    tabButton(id: "notifications", label: "Notifications", icon: "bell")
-                    tabButton(id: "privacy", label: "Data & Privacy", icon: "lock.shield")
+                    tabButton(id: "privacy", label: "Storage & History", icon: "internaldrive")
                     tabButton(id: "about", label: "About", icon: "info.circle")
                 }
                 .padding(.horizontal, AppTheme.Spacing.md)
@@ -42,8 +41,6 @@ public struct SettingsView: View {
                         generalSettings()
                     case "appearance":
                         appearanceSettings()
-                    case "notifications":
-                        notificationSettings()
                     case "privacy":
                         privacySettings()
                     case "about":
@@ -57,7 +54,7 @@ public struct SettingsView: View {
             .padding(.bottom, AppTheme.Spacing.xxl)
         }
         .onAppear {
-            checkNotifications()
+            updateSpeed = env.samplingCoordinator.samplingInterval
         }
     }
 
@@ -87,7 +84,7 @@ public struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Keep in Menu Bar")
                             .font(.system(size: 13, weight: .medium))
-                        Text("Closing the main window leaves quick capture available in the menu bar.")
+                        Text("Closing the main window leaves live hardware telemetry available in the menu bar.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -100,15 +97,37 @@ public struct SettingsView: View {
 
                 Toggle(isOn: $env.launchAtLogin) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Launch at Login (Opt-in)")
+                        Text("Launch at Login (SMAppService)")
                             .font(.system(size: 13, weight: .medium))
-                        Text("Starts quietly in the menu bar when your Mac turns on via SMAppService.")
+                        Text("Starts Task Manager automatically when your Mac boots.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
                 .onChange(of: env.launchAtLogin) { val in
                     try? env.loginItemService.setLaunchAtLogin(enabled: val)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Telemetry Refresh Rate")
+                        .font(.system(size: 13, weight: .medium))
+                    Text("Controls how frequently CPU, Memory, GPU, and Network statistics are sampled.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Picker("Update Speed", selection: $updateSpeed) {
+                        Text("High (0.5s)").tag(0.5)
+                        Text("Normal (1.0s)").tag(1.0)
+                        Text("Low (3.0s)").tag(3.0)
+                        Text("Paused").tag(0.0)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 320)
+                    .onChange(of: updateSpeed) { newVal in
+                        env.samplingCoordinator.samplingInterval = newVal
+                    }
                 }
             }
         }
@@ -137,75 +156,13 @@ public struct SettingsView: View {
         }
     }
 
-    private func notificationSettings() -> some View {
-        CardView {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Notifications & Reminders").font(.headline)
-
-                HStack {
-                    Text("Current Permission Status:")
-                        .font(.system(size: 13))
-                    Spacer()
-                    Text(notificationStatus)
-                        .font(.system(size: 12, weight: .semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.blue.opacity(0.12))
-                        .foregroundColor(.blue)
-                        .clipShape(Capsule())
-                }
-
-                Button("Request Notification Authorization") {
-                    Task {
-                        _ = try? await env.notificationService.requestAuthorization()
-                        checkNotifications()
-                    }
-                }
-                .buttonStyle(.bordered)
-
-                Text("Reminders are delivered strictly on-device through Apple UserNotifications without any remote push servers.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
     private func privacySettings() -> some View {
         VStack(spacing: AppTheme.Spacing.md) {
             CardView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Backup & Export").font(.headline)
+                    Text("Data Storage & Metric History").font(.headline)
 
-                    HStack(spacing: 12) {
-                        Button("Export All (JSON)") {
-                            if let data = try? env.importExportService.exportJSON() {
-                                saveFile(data: data, defaultName: "TaskManager_Backup.json")
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppTheme.Colors.primaryAccent)
-
-                        Button("Export Tasks (CSV)") {
-                            if let csv = try? env.importExportService.exportCSV(), let data = csv.data(using: .utf8) {
-                                saveFile(data: data, defaultName: "Tasks.csv")
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                    }
-
-                    if let msg = exportMessage {
-                        Text(msg)
-                            .font(.caption)
-                            .foregroundColor(.emerald)
-                    }
-                }
-            }
-
-            CardView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Data Storage & Reset").font(.headline)
-
-                    Text("All task data and telemetry rollups are stored locally in an embedded SQLite database. No analytics or metrics are uploaded.")
+                    Text("All historical hardware telemetry rollups are stored locally in an embedded SQLite database. No analytics, processes, or metrics are uploaded to external servers.")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
@@ -213,80 +170,78 @@ public struct SettingsView: View {
 
                     Button("Clear Metric History") {
                         try? env.rollupRepo.clearAll()
-                        exportMessage = "Metric history cleared."
+                        statusMessage = "Metric history cleared."
                     }
                     .buttonStyle(.bordered)
 
-                    Button("Reset All Tasks & Database", role: .destructive) {
-                        isResetConfirmationPresented = true
+                    if let msg = statusMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundColor(.emerald)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.rose)
                 }
             }
-        }
-        .confirmationDialog("Reset Database?", isPresented: $isResetConfirmationPresented, titleVisibility: .visible) {
-            Button("Reset Everything", role: .destructive) {
-                try? env.store.executeUpdate(sql: "DELETE FROM tasks;")
-                try? env.store.executeUpdate(sql: "DELETE FROM projects;")
-                try? env.store.executeUpdate(sql: "DELETE FROM tags;")
-                env.reloadAll()
-                exportMessage = "Database reset successfully."
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will permanently erase all your tasks, projects, and tags. This action cannot be undone.")
         }
     }
 
     private func aboutSettings() -> some View {
         CardView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Task Manager for macOS").font(.headline)
-                Text("Version 1.0 (Build 1)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    appLogoImage
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-                Text("A polished, lightweight, privacy-first task manager with an advanced local Mac system-information dashboard and native macOS widgets.")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Task Manager for macOS")
+                            .font(.headline)
+                        Text("Version 1.0 (Build 1) • Native Swift & AppKit")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Text("A modern, zero-dependency, Windows Task Manager inspired software and hardware performance monitor for macOS.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
                 Divider()
 
-                Text("License: MIT License")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text("100% Offline • Local-First SQLite • Zero Cloud Tracking • Apple Silicon & Intel Universal")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Device: \(env.deviceProfile.marketingName)")
+                        .font(.caption.monospaced())
+                    Text("CPU: \(env.deviceProfile.cpuName) • \(env.deviceProfile.logicalCores) Cores")
+                        .font(.caption.monospaced())
+                    Text("Architecture: \(env.deviceProfile.architecture) • Memory: \(env.deviceProfile.formattedMemory)")
+                        .font(.caption.monospaced())
+                    Text("GPU: \(env.deviceProfile.gpuNames.first ?? "Integrated GPU")")
+                        .font(.caption.monospaced())
+                    Text("OS: macOS \(env.deviceProfile.osVersion) (\(env.deviceProfile.osBuild))")
+                        .font(.caption.monospaced())
+                }
+                .foregroundColor(.secondary)
+
+                Divider()
+
+                Text("License: MIT License • 100% Offline • Zero Remote Telemetry")
                     .font(.caption2)
                     .foregroundColor(.secondary.opacity(0.8))
             }
         }
     }
 
-    private func checkNotifications() {
-        Task {
-            let status = await env.notificationService.checkAuthorizationStatus()
-            await MainActor.run {
-                switch status {
-                case .authorized: notificationStatus = "Authorized"
-                case .denied: notificationStatus = "Denied in System Settings"
-                case .notDetermined: notificationStatus = "Not Requested"
-                case .provisional: notificationStatus = "Provisional"
-                default: notificationStatus = "Unknown"
-                }
-            }
-        }
-    }
-
-    private func saveFile(data: Data, defaultName: String) {
-        let savePanel = NSSavePanel()
-        savePanel.canCreateDirectories = true
-        savePanel.nameFieldStringValue = defaultName
-        savePanel.begin { result in
-            if result == .OK, let url = savePanel.url {
-                try? data.write(to: url)
-                exportMessage = "Successfully exported to \(url.lastPathComponent)"
-            }
+    @ViewBuilder
+    private var appLogoImage: some View {
+        if let url = Bundle.module.url(forResource: "icon", withExtension: "png"),
+           let nsImage = NSImage(contentsOf: url) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: "cpu.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(.indigo)
         }
     }
 }

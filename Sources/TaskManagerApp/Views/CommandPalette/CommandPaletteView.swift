@@ -1,7 +1,7 @@
 import SwiftUI
 import TaskManagerCore
 
-/// Command palette floating overlay for keyboard-first navigation and task search (Cmd+K).
+/// Command palette floating overlay for keyboard-first navigation and process search (Cmd+K).
 public struct CommandPaletteView: View {
     @EnvironmentObject private var env: AppEnvironment
     @Binding public var isPresented: Bool
@@ -13,8 +13,13 @@ public struct CommandPaletteView: View {
     }
 
     public var body: some View {
-        let matchingTasks = env.tasks.filter {
-            !query.isEmpty && $0.title.localizedCaseInsensitiveContains(query)
+        let processes = env.samplingCoordinator.latestProcesses?.value ?? []
+        let matchingProcesses = processes.filter {
+            !query.isEmpty && (
+                $0.name.localizedCaseInsensitiveContains(query) ||
+                ($0.bundleIdentifier?.localizedCaseInsensitiveContains(query) ?? false) ||
+                "\($0.pid)".contains(query)
+            )
         }
 
         VStack(spacing: 0) {
@@ -24,9 +29,9 @@ public struct CommandPaletteView: View {
                     .foregroundColor(.secondary)
                     .font(.system(size: 16))
 
-                TextField("Type a command or search tasks...", text: $query)
+                TextField("Type a command or search processes (e.g. Safari, GPU, CPU)...", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 15))
+                    .font(.system(size: 14))
                     .focused($isFieldFocused)
 
                 if !query.isEmpty {
@@ -54,79 +59,71 @@ public struct CommandPaletteView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
                     if query.isEmpty {
-                        // Quick Navigation Section
+                        // Navigation Shortcuts
                         Text("Navigation")
                             .font(.caption2.bold())
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 14)
                             .padding(.top, 8)
 
-                        navRow(title: "Today", icon: "sun.max", destination: .today)
-                        navRow(title: "Inbox", icon: "tray", destination: .inbox)
-                        navRow(title: "Upcoming", icon: "calendar", destination: .upcoming)
-                        navRow(title: "All Tasks", icon: "checklist", destination: .allTasks)
-                        navRow(title: "Projects", icon: "folder", destination: .projects)
-                        navRow(title: "Productivity Insights", icon: "chart.bar", destination: .productivity)
-                        navRow(title: "Mac Overview", icon: "laptopcomputer", destination: .macOverview)
-                        navRow(title: "Performance Monitor", icon: "cpu", destination: .performance)
-                        navRow(title: "Hardware & Capabilities", icon: "slider.horizontal.3", destination: .hardwareCapabilities)
+                        navRow(title: "Processes", icon: "square.stack.3d.up.fill", destination: .processes)
+                        navRow(title: "Performance — CPU", icon: "cpu", destination: .performance(.cpu))
+                        navRow(title: "Performance — Memory", icon: "memorychip", destination: .performance(.memory))
+                        navRow(title: "Performance — GPU", icon: "display.trianglebadge.exclamationmark", destination: .performance(.gpu))
+                        navRow(title: "Performance — Disk", icon: "internaldrive", destination: .performance(.disk))
+                        navRow(title: "Performance — Network", icon: "network", destination: .performance(.network))
+                        navRow(title: "Startup Apps", icon: "bolt.fill", destination: .startupApps)
+                        navRow(title: "Hardware Specifications", icon: "slider.horizontal.3", destination: .hardware)
                         navRow(title: "Settings", icon: "gearshape", destination: .settings)
                     } else {
-                        // Task Search Results
-                        if matchingTasks.isEmpty {
-                            Text("No tasks found matching \"\(query)\". Press Return to create as a new task.")
+                        // Process Search Results
+                        if matchingProcesses.isEmpty {
+                            Text("No processes found matching \"\(query)\".")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .padding(14)
-
-                            Button(action: {
-                                env.addTask(title: query)
-                                isPresented = false
-                            }) {
-                                HStack {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(AppTheme.Colors.primaryAccent)
-                                    Text("Create Task \"\(query)\"")
-                                        .font(.system(size: 13, weight: .medium))
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                            }
-                            .buttonStyle(.plain)
                         } else {
-                            Text("Tasks")
+                            Text("Processes (\(matchingProcesses.count))")
                                 .font(.caption2.bold())
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal, 14)
                                 .padding(.top, 8)
 
-                            ForEach(matchingTasks.prefix(8)) { task in
-                                Button(action: {
-                                    env.selectedDestination = .allTasks
-                                    isPresented = false
-                                }) {
-                                    HStack {
-                                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                                            .foregroundColor(task.isCompleted ? .emerald : .secondary)
-                                        Text(task.title)
+                            ForEach(matchingProcesses.prefix(10)) { proc in
+                                HStack {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "app.fill")
+                                            .foregroundColor(.indigo)
                                             .font(.system(size: 13))
-                                        Spacer()
-                                        PriorityBadge(priority: task.priority)
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text(proc.name)
+                                                .font(.system(size: 13, weight: .medium))
+                                            Text("PID: \(proc.pid) • \(proc.formattedMemory) • \(proc.architecture)")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
                                     }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 6)
+                                    Spacer()
+
+                                    Button("End Task") {
+                                        _ = env.terminateProcess(pid: proc.pid)
+                                        isPresented = false
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                    .foregroundColor(.rose)
                                 }
-                                .buttonStyle(.plain)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
                             }
                         }
                     }
                 }
                 .padding(.vertical, 4)
             }
-            .frame(maxHeight: 280)
+            .frame(maxHeight: 320)
         }
-        .frame(width: 500)
+        .frame(width: 520)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
                 .fill(Color(nsColor: .windowBackgroundColor))
@@ -135,7 +132,7 @@ public struct CommandPaletteView: View {
             RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
                 .stroke(AppTheme.Colors.subtleBorder, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+        .shadow(color: .black.opacity(0.25), radius: 24, y: 12)
         .onAppear {
             isFieldFocused = true
         }
@@ -144,13 +141,16 @@ public struct CommandPaletteView: View {
     private func navRow(title: String, icon: String, destination: AppDestination) -> some View {
         Button(action: {
             env.selectedDestination = destination
+            if case .performance(let subtab) = destination {
+                env.selectedPerformanceSubtab = subtab
+            }
             isPresented = false
         }) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 13))
                     .foregroundColor(.indigo)
-                    .frame(width: 20)
+                    .frame(width: 22)
                 Text(title)
                     .font(.system(size: 13))
                 Spacer()

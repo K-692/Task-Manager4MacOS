@@ -23,6 +23,36 @@ mkdir -p "${RESOURCES_DIR}"
 cp "${BUILD_DIR}/TaskManager" "${MACOS_DIR}/TaskManager"
 chmod +x "${MACOS_DIR}/TaskManager"
 
+# Copy SPM Resource Bundle if present
+if [ -d "${BUILD_DIR}/TaskManager_TaskManagerApp.bundle" ]; then
+    echo "==> Copying SwiftPM resource bundle..."
+    cp -R "${BUILD_DIR}/TaskManager_TaskManagerApp.bundle" "${RESOURCES_DIR}/"
+fi
+
+# Copy icon.png directly into Resources as well
+if [ -f "icon/icon.png" ]; then
+    cp "icon/icon.png" "${RESOURCES_DIR}/icon.png"
+fi
+
+# Generate native macOS AppIcon.icns from icon/icon.png
+if [ -f "icon/icon.png" ]; then
+    echo "==> Generating AppIcon.icns from icon/icon.png..."
+    ICONSET="dist/AppIcon.iconset"
+    mkdir -p "${ICONSET}"
+    sips -z 16 16     icon/icon.png --out "${ICONSET}/icon_16x16.png" > /dev/null 2>&1
+    sips -z 32 32     icon/icon.png --out "${ICONSET}/icon_16x16@2x.png" > /dev/null 2>&1
+    sips -z 32 32     icon/icon.png --out "${ICONSET}/icon_32x32.png" > /dev/null 2>&1
+    sips -z 64 64     icon/icon.png --out "${ICONSET}/icon_32x32@2x.png" > /dev/null 2>&1
+    sips -z 128 128   icon/icon.png --out "${ICONSET}/icon_128x128.png" > /dev/null 2>&1
+    sips -z 256 256   icon/icon.png --out "${ICONSET}/icon_128x128@2x.png" > /dev/null 2>&1
+    sips -z 256 256   icon/icon.png --out "${ICONSET}/icon_256x256.png" > /dev/null 2>&1
+    sips -z 512 512   icon/icon.png --out "${ICONSET}/icon_256x256@2x.png" > /dev/null 2>&1
+    sips -z 512 512   icon/icon.png --out "${ICONSET}/icon_512x512.png" > /dev/null 2>&1
+    sips -z 1024 1024 icon/icon.png --out "${ICONSET}/icon_512x512@2x.png" > /dev/null 2>&1
+    iconutil -c icns "${ICONSET}" -o "${RESOURCES_DIR}/AppIcon.icns"
+    rm -rf "${ICONSET}"
+fi
+
 # Create Info.plist
 cat <<EOF > "${CONTENTS_DIR}/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -37,6 +67,8 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
     <string>${APP_NAME}</string>
     <key>CFBundleDisplayName</key>
     <string>${APP_NAME}</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -66,4 +98,4 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
 </plist>
 EOF
 
-echo "==> Successfully assembled ${APP_DIR}!"
+echo "==> Successfully assembled ${APP_DIR} with AppIcon.icns!"

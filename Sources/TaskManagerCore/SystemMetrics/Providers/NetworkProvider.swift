@@ -64,6 +64,34 @@ public struct NetworkMetrics: Codable, Sendable {
         self.totalBytesOutPerSecond = totalBytesOutPerSecond
         self.interfaces = interfaces
     }
+
+    public var formattedInPerSecond: String {
+        formatRate(totalBytesInPerSecond)
+    }
+
+    public var formattedOutPerSecond: String {
+        formatRate(totalBytesOutPerSecond)
+    }
+
+    public var formattedTotalIn: String {
+        let total = interfaces.reduce(0) { $0 + $1.totalBytesIn }
+        return ByteCountFormatter.string(fromByteCount: Int64(total), countStyle: .file)
+    }
+
+    public var formattedTotalOut: String {
+        let total = interfaces.reduce(0) { $0 + $1.totalBytesOut }
+        return ByteCountFormatter.string(fromByteCount: Int64(total), countStyle: .file)
+    }
+
+    private func formatRate(_ bytesPerSec: Double) -> String {
+        if bytesPerSec >= 1_048_576 {
+            return String(format: "%.1f MB/s", bytesPerSec / 1_048_576)
+        } else if bytesPerSec >= 1024 {
+            return String(format: "%.1f KB/s", bytesPerSec / 1024)
+        } else {
+            return String(format: "%.0f B/s", bytesPerSec)
+        }
+    }
 }
 
 /// Provider for network interfaces and throughput using getifaddrs.

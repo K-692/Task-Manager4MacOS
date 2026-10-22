@@ -2,6 +2,12 @@ import SwiftUI
 import Charts
 import TaskManagerCore
 
+/// Reusable time-series chart point.
+private struct MetricPoint: Identifiable {
+    let id: Int
+    let value: Double
+}
+
 /// Interactive Swift Charts time-series view for CPU load.
 public struct CPUTimeSeriesChart: View {
     public let dataPoints: [Double]
@@ -10,13 +16,8 @@ public struct CPUTimeSeriesChart: View {
         self.dataPoints = dataPoints
     }
 
-    private struct ChartPoint: Identifiable {
-        let id: Int
-        let value: Double
-    }
-
     public var body: some View {
-        let points = dataPoints.enumerated().map { ChartPoint(id: $0.offset, value: $0.element) }
+        let points = dataPoints.enumerated().map { MetricPoint(id: $0.offset, value: $0.element) }
 
         Chart(points) { point in
             AreaMark(
@@ -25,7 +26,7 @@ public struct CPUTimeSeriesChart: View {
             )
             .foregroundStyle(
                 LinearGradient(
-                    colors: [Color.indigo.opacity(0.35), Color.indigo.opacity(0.0)],
+                    colors: [Color.blue.opacity(0.35), Color.blue.opacity(0.0)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -35,7 +36,7 @@ public struct CPUTimeSeriesChart: View {
                 x: .value("Time", point.id),
                 y: .value("CPU %", point.value)
             )
-            .foregroundStyle(Color.indigo)
+            .foregroundStyle(Color.blue)
             .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
         }
         .chartYScale(domain: 0...100)
@@ -53,11 +54,111 @@ public struct CPUTimeSeriesChart: View {
                 }
             }
         }
-        .frame(height: 140)
+        .frame(height: 180)
     }
 }
 
-/// Swift Charts view for Network inbound vs outbound throughput.
+/// Interactive Swift Charts time-series view for Memory usage %.
+public struct MemoryTimeSeriesChart: View {
+    public let dataPoints: [Double]
+
+    public init(dataPoints: [Double]) {
+        self.dataPoints = dataPoints
+    }
+
+    public var body: some View {
+        let points = dataPoints.enumerated().map { MetricPoint(id: $0.offset, value: $0.element) }
+
+        Chart(points) { point in
+            AreaMark(
+                x: .value("Time", point.id),
+                y: .value("Memory %", point.value)
+            )
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [Color.purple.opacity(0.35), Color.purple.opacity(0.0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            LineMark(
+                x: .value("Time", point.id),
+                y: .value("Memory %", point.value)
+            )
+            .foregroundStyle(Color.purple)
+            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        }
+        .chartYScale(domain: 0...100)
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: [0, 25, 50, 75, 100]) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                    .foregroundStyle(Color.secondary.opacity(0.2))
+                AxisValueLabel {
+                    if let intVal = value.as(Int.self) {
+                        Text("\(intVal)%")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .frame(height: 180)
+    }
+}
+
+/// Interactive Swift Charts time-series view for GPU load %.
+public struct GPUTimeSeriesChart: View {
+    public let dataPoints: [Double]
+
+    public init(dataPoints: [Double]) {
+        self.dataPoints = dataPoints
+    }
+
+    public var body: some View {
+        let points = dataPoints.enumerated().map { MetricPoint(id: $0.offset, value: $0.element) }
+
+        Chart(points) { point in
+            AreaMark(
+                x: .value("Time", point.id),
+                y: .value("GPU %", point.value)
+            )
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [Color.emerald.opacity(0.35), Color.emerald.opacity(0.0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            LineMark(
+                x: .value("Time", point.id),
+                y: .value("GPU %", point.value)
+            )
+            .foregroundStyle(Color.emerald)
+            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        }
+        .chartYScale(domain: 0...100)
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: [0, 25, 50, 75, 100]) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                    .foregroundStyle(Color.secondary.opacity(0.2))
+                AxisValueLabel {
+                    if let intVal = value.as(Int.self) {
+                        Text("\(intVal)%")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .frame(height: 180)
+    }
+}
+
+/// Swift Charts view for Network throughput (Inbound & Outbound).
 public struct NetworkThroughputChart: View {
     public let inboundPoints: [Double]
     public let outboundPoints: [Double]
@@ -77,10 +178,10 @@ public struct NetworkThroughputChart: View {
     public var body: some View {
         var points: [NetPoint] = []
         for (idx, val) in inboundPoints.enumerated() {
-            points.append(NetPoint(id: "in_\(idx)", timeIndex: idx, direction: "Inbound (Download)", rateKB: val / 1024.0))
+            points.append(NetPoint(id: "in_\(idx)", timeIndex: idx, direction: "Download (Inbound)", rateKB: val / 1024.0))
         }
         for (idx, val) in outboundPoints.enumerated() {
-            points.append(NetPoint(id: "out_\(idx)", timeIndex: idx, direction: "Outbound (Upload)", rateKB: val / 1024.0))
+            points.append(NetPoint(id: "out_\(idx)", timeIndex: idx, direction: "Upload (Outbound)", rateKB: val / 1024.0))
         }
 
         return Chart(points) { point in
@@ -92,8 +193,8 @@ public struct NetworkThroughputChart: View {
             .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round))
         }
         .chartForegroundStyleScale([
-            "Inbound (Download)": Color.emerald,
-            "Outbound (Upload)": Color.blue
+            "Download (Inbound)": Color.cyan,
+            "Upload (Outbound)": Color.indigo
         ])
         .chartXAxis(.hidden)
         .chartYAxis {
@@ -102,7 +203,7 @@ public struct NetworkThroughputChart: View {
                     .foregroundStyle(Color.secondary.opacity(0.2))
                 AxisValueLabel {
                     if let dVal = value.as(Double.self) {
-                        Text(String(format: "%.0f KB", dVal))
+                        Text(String(format: "%.0f KB/s", dVal))
                             .font(.system(size: 9))
                             .foregroundColor(.secondary)
                     }
@@ -110,99 +211,6 @@ public struct NetworkThroughputChart: View {
             }
         }
         .chartLegend(position: .top, alignment: .trailing)
-        .frame(height: 140)
-    }
-}
-
-/// Bar chart showing open task distribution across priority levels.
-public struct PriorityDistributionChart: View {
-    public let counts: [TaskPriority: Int]
-
-    public init(counts: [TaskPriority: Int]) {
-        self.counts = counts
-    }
-
-    private struct PriorityPoint: Identifiable {
-        var id: String { priority.rawValue }
-        let priority: TaskPriority
-        let count: Int
-    }
-
-    public var body: some View {
-        let points = TaskPriority.allCases.map { PriorityPoint(priority: $0, count: counts[$0] ?? 0) }
-
-        Chart(points) { point in
-            BarMark(
-                x: .value("Priority", point.priority.displayName),
-                y: .value("Count", point.count)
-            )
-            .foregroundStyle(color(for: point.priority))
-            .cornerRadius(4)
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading) { value in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
-                    .foregroundStyle(Color.secondary.opacity(0.2))
-                AxisValueLabel()
-            }
-        }
-        .frame(height: 130)
-    }
-
-    private func color(for priority: TaskPriority) -> Color {
-        switch priority {
-        case .low: return .slate
-        case .normal: return .blue
-        case .high: return .amber
-        case .urgent: return .rose
-        }
-    }
-}
-
-/// Circular daily progress ring view.
-public struct ProgressRingView: View {
-    public let completed: Int
-    public let total: Int
-    public var size: CGFloat = 64
-
-    public init(completed: Int, total: Int, size: CGFloat = 64) {
-        self.completed = completed
-        self.total = total
-        self.size = size
-    }
-
-    private var progress: Double {
-        guard total > 0 else { return 0.0 }
-        return min(1.0, Double(completed) / Double(total))
-    }
-
-    public var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.primary.opacity(0.08), lineWidth: 6)
-
-            Circle()
-                .trim(from: 0, to: CGFloat(progress))
-                .stroke(
-                    AngularGradient(
-                        gradient: Gradient(colors: [.indigo, .emerald]),
-                        center: .center,
-                        startAngle: .degrees(-90),
-                        endAngle: .degrees(270)
-                    ),
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.5), value: progress)
-
-            VStack(spacing: 0) {
-                Text("\(Int(progress * 100))%")
-                    .font(.system(size: size * 0.22, weight: .bold, design: .rounded))
-                Text("\(completed)/\(total)")
-                    .font(.system(size: size * 0.16))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .frame(width: size, height: size)
+        .frame(height: 180)
     }
 }

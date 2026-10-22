@@ -1,83 +1,100 @@
 import SwiftUI
 import TaskManagerCore
 
-/// Compact menu-bar surface for quick capture, today summary, and app lifecycle control.
+/// Compact menu-bar surface for instant hardware & process monitoring.
 public struct MenuBarContentView: View {
     @EnvironmentObject private var env: AppEnvironment
-    @State private var quickTitle: String = ""
 
     public init() {}
 
     public var body: some View {
-        let todayTasks = env.tasks.filter { $0.isToday && !$0.isCompleted }
         let cpu = env.samplingCoordinator.latestCPU?.value
         let mem = env.samplingCoordinator.latestMemory?.value
+        let gpu = env.samplingCoordinator.latestGPU?.value
+        let net = env.samplingCoordinator.latestNetwork?.value
         let battery = env.samplingCoordinator.latestBattery?.value
 
-        VStack(alignment: .leading, spacing: 10) {
-            // Header
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with App Name and Quick Status
             HStack {
-                Text("Task Manager")
-                    .font(.headline)
+                HStack(spacing: 6) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.indigo)
+                    Text("Task Manager")
+                        .font(.headline)
+                }
                 Spacer()
-                Text("\(todayTasks.count) due today")
-                    .font(.caption)
+                Text(env.deviceProfile.marketingName)
+                    .font(.caption2)
                     .foregroundColor(.secondary)
-            }
-
-            // Quick capture
-            HStack {
-                TextField("Quick capture... (Return)", text: $quickTitle)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit {
-                        submitQuick()
-                    }
-                Button("Add") {
-                    submitQuick()
-                }
-                .disabled(quickTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .lineLimit(1)
             }
 
             Divider()
 
-            // Today tasks list (top 3)
-            if todayTasks.isEmpty {
-                Text("No outstanding tasks for today.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(todayTasks.prefix(3)) { task in
+            // Hardware Telemetry Rows
+            VStack(spacing: 8) {
+                // CPU Row
+                HStack {
+                    Label("CPU", systemImage: "cpu")
+                        .font(.caption)
+                        .foregroundColor(.indigo)
+                        .frame(width: 80, alignment: .leading)
+                    Spacer()
+                    Text(String(format: "%.1f%%", cpu?.totalUsagePercent ?? 0.0))
+                        .font(.caption.monospaced())
+                        .bold()
+                }
+
+                // Memory Row
+                HStack {
+                    Label("Memory", systemImage: "memorychip")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .frame(width: 80, alignment: .leading)
+                    Spacer()
+                    Text("\(mem?.formattedUsed ?? "0 GB") (\(String(format: "%.0f%%", mem?.usagePercentage ?? 0.0)))")
+                        .font(.caption.monospaced())
+                }
+
+                // GPU Row
+                HStack {
+                    Label("GPU", systemImage: "display.trianglebadge.exclamationmark")
+                        .font(.caption)
+                        .foregroundColor(.purple)
+                        .frame(width: 80, alignment: .leading)
+                    Spacer()
+                    Text(String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0))
+                        .font(.caption.monospaced())
+                        .bold()
+                }
+
+                // Network Row
+                if let n = net {
                     HStack {
-                        Button(action: { env.toggleTaskCompletion(task) }) {
-                            Image(systemName: "circle")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
-
-                        Text(task.title)
-                            .font(.system(size: 12))
-                            .lineLimit(1)
+                        Label("Network", systemImage: "network")
+                            .font(.caption)
+                            .foregroundColor(.cyan)
+                            .frame(width: 80, alignment: .leading)
                         Spacer()
+                        Text("↓ \(n.formattedInPerSecond)  ↑ \(n.formattedOutPerSecond)")
+                            .font(.caption2.monospaced())
+                            .foregroundColor(.secondary)
                     }
                 }
-            }
 
-            Divider()
-
-            // Compact System Status
-            HStack(spacing: 12) {
-                Label("\(String(format: "%.0f%%", cpu?.totalUsagePercent ?? 0)) CPU", systemImage: "cpu")
-                    .font(.caption2)
-                    .foregroundColor(.indigo)
-
-                Label("\(mem?.formattedUsed ?? "0 GB") RAM", systemImage: "memorychip")
-                    .font(.caption2)
-                    .foregroundColor(.blue)
-
+                // Battery Row (if present)
                 if let bat = battery {
-                    Label("\(bat.chargePercent)%", systemImage: "battery.100")
-                        .font(.caption2)
-                        .foregroundColor(bat.chargePercent > 20 ? .emerald : .rose)
+                    HStack {
+                        Label("Battery", systemImage: bat.isCharging ? "battery.100.bolt" : "battery.100")
+                            .font(.caption)
+                            .foregroundColor(bat.chargePercent > 20 ? .emerald : .rose)
+                            .frame(width: 80, alignment: .leading)
+                        Spacer()
+                        Text("\(bat.chargePercent)% \(bat.isCharging ? "(Charging)" : "")")
+                            .font(.caption.monospaced())
+                    }
                 }
             }
 
@@ -91,21 +108,20 @@ public struct MenuBarContentView: View {
                         window.makeKeyAndOrderFront(nil)
                     }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
                 Spacer()
+
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }
+                .buttonStyle(.plain)
+                .font(.caption)
                 .foregroundColor(.rose)
             }
         }
-        .padding(12)
-        .frame(width: 300)
-    }
-
-    private func submitQuick() {
-        let title = quickTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return }
-        env.addTask(title: title, dueAt: Date())
-        quickTitle = ""
+        .padding(14)
+        .frame(width: 280)
     }
 }
