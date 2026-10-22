@@ -1,7 +1,7 @@
 # Task Manager for macOS — Implementation Architecture & Research Journey
 
 **Document Purpose:** Living architecture specification, research paper reference, and end-to-end technical implementation log for the **Task Manager for macOS** desktop platform.  
-**Version:** 2.2.0  
+**Version:** 2.3.0  
 **Target Platform:** macOS 13.0+ (Ventura, Sonoma, Sequoia)  
 **Binary Architecture:** Universal (`arm64` Apple Silicon + `x86_64` Intel)  
 **License:** MIT License  
@@ -142,6 +142,11 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 - **Sidebar Real-Time Updates & Alignment Fix:** Fixed `SparklineView` coordinate mapping to right-aligned rolling buffer coordinates with center reference lines and current indicator dots; resolved label truncation via dedicated 72pt columns; bound `MainLayoutView` directly to reactive `SamplingCoordinator` updates for 60fps telemetry.
 - **Mac Menu Bar 1s Real-Time Sync:** Native `MenuBarExtra` custom label now displays real-time CPU% and GPU% directly on the macOS menu bar, refreshed continuously on a 1-second cadence using RunLoop `.common` mode without background throttling.
 - **Settings Panel Precision Alignment:** Cleared top window title bar overlap; standardized picker widths (320pt) for both Telemetry Frequency and Theme Mode; perfectly aligned technical specs grid; confirmed zero telemetry retention in SQLite beyond 60s ephemeral ring buffers.
+
+### Phase 5: Settings Tight Boundary Layout, Customizable Menu Bar Metrics & Desktop Widget Guide (v2.3.0)
+- **Settings Layout Boundary Tightening:** Snug element boundaries with `CardView(padding: 12)`, reduced inter-section spacing (10pt), compact row vertical rhythm (8pt), and tight horizontal margins (18pt).
+- **Customizable macOS Menu Bar Widget:** Built dynamic metric selector chips in the Settings tab allowing users to toggle any combination of **CPU**, **GPU**, **Memory**, **Disk**, and **Network** for display on the top status bar, backed by instant live preview and persistent storage in `SettingsRepository`.
+- **macOS Desktop Widget Architecture:** Produced `Documentation/DesktopWidgetGuide.md` providing end-to-end WidgetKit architecture, App Groups shared memory caching, and `TimelineProvider` implementation for macOS Sonoma/Sequoia Desktop Widgets.
 
 ---
 

@@ -1,7 +1,8 @@
 import SwiftUI
 import TaskManagerCore
 
-/// Settings view: clean, unified single-tab settings panel with aligned technical controls.
+/// Settings view: tight, technical, unified single-tab configuration panel
+/// with menu bar widget customization, telemetry rates, and system specs.
 public struct SettingsView: View {
     @EnvironmentObject private var env: AppEnvironment
     @State private var updateSpeed: Double = 1.0
@@ -10,57 +11,162 @@ public struct SettingsView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                // Header (with proper top clearance so title is never clipped)
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 10) {
+                // Header (compact clearance inside safe area)
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Settings")
-                        .font(.system(size: 24, weight: .bold))
-                    Text("Configure Task Manager runtime behavior, telemetry frequency, and appearance.")
-                        .font(.subheadline)
+                        .font(.system(size: 20, weight: .bold))
+                    Text("Runtime preferences, menu bar widget customization, and telemetry cadences.")
+                        .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 28)
-                .padding(.top, 24)
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
 
-                // 1. Application & Background Behavior
-                CardView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Application & Background Behavior")
-                            .font(.system(size: 14, weight: .semibold))
+                // 1. Menu Bar Widget Customization & Background
+                CardView(padding: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("macOS Menu Bar Widget & Background")
+                                .font(.system(size: 13, weight: .bold))
+                            Spacer()
+                            Text("Real-Time")
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.emerald.opacity(0.12))
+                                .foregroundColor(.emerald)
+                                .clipShape(Capsule())
+                        }
 
-                        VStack(spacing: 12) {
-                            // Row: Keep in Menu Bar
-                            HStack(alignment: .center) {
-                                VStack(alignment: .leading, spacing: 2) {
+                        // Component Selection Toggles (CPU / GPU / Memory / Disk / Network)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Menu Bar Display Components")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 6) {
+                                menuBarToggleChip(
+                                    title: "CPU",
+                                    icon: "cpu",
+                                    color: .indigo,
+                                    isOn: $env.menuBarShowCPU,
+                                    currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestCPU?.value?.totalUsagePercent ?? 0)
+                                )
+
+                                menuBarToggleChip(
+                                    title: "GPU",
+                                    icon: "display.trianglebadge.exclamationmark",
+                                    color: .purple,
+                                    isOn: $env.menuBarShowGPU,
+                                    currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestGPU?.value?.utilizationPercent ?? 0)
+                                )
+
+                                menuBarToggleChip(
+                                    title: "Memory",
+                                    icon: "memorychip",
+                                    color: .blue,
+                                    isOn: $env.menuBarShowMemory,
+                                    currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestMemory?.value?.usagePercentage ?? 0)
+                                )
+
+                                menuBarToggleChip(
+                                    title: "Disk",
+                                    icon: "internaldrive",
+                                    color: .emerald,
+                                    isOn: $env.menuBarShowDisk,
+                                    currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestStorage?.value?.first?.usagePercentage ?? 0)
+                                )
+
+                                menuBarToggleChip(
+                                    title: "Network",
+                                    icon: "network",
+                                    color: .cyan,
+                                    isOn: $env.menuBarShowNetwork,
+                                    currentVal: formatCompactRate((env.samplingCoordinator.latestNetwork?.value?.totalBytesInPerSecond ?? 0) + (env.samplingCoordinator.latestNetwork?.value?.totalBytesOutPerSecond ?? 0))
+                                )
+                            }
+
+                            // Live Menu Bar Preview Ribbon
+                            HStack(spacing: 6) {
+                                Text("Live Menu Bar Preview:")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.secondary)
+
+                                HStack(spacing: 5) {
+                                    let hasAny = env.menuBarShowCPU || env.menuBarShowGPU || env.menuBarShowMemory || env.menuBarShowDisk || env.menuBarShowNetwork
+
+                                    if env.menuBarShowCPU || !hasAny {
+                                        previewItem(icon: "cpu", val: "\(Int(env.samplingCoordinator.latestCPU?.value?.totalUsagePercent ?? 0))%", color: .indigo)
+                                    }
+                                    if env.menuBarShowGPU {
+                                        previewItem(icon: "display.trianglebadge.exclamationmark", val: "\(Int(env.samplingCoordinator.latestGPU?.value?.utilizationPercent ?? 0))%", color: .purple)
+                                    }
+                                    if env.menuBarShowMemory {
+                                        previewItem(icon: "memorychip", val: "\(Int(env.samplingCoordinator.latestMemory?.value?.usagePercentage ?? 0))%", color: .blue)
+                                    }
+                                    if env.menuBarShowDisk {
+                                        previewItem(icon: "internaldrive", val: "\(Int(env.samplingCoordinator.latestStorage?.value?.first?.usagePercentage ?? 0))%", color: .emerald)
+                                    }
+                                    if env.menuBarShowNetwork {
+                                        previewItem(icon: "network", val: formatCompactRate((env.samplingCoordinator.latestNetwork?.value?.totalBytesInPerSecond ?? 0) + (env.samplingCoordinator.latestNetwork?.value?.totalBytesOutPerSecond ?? 0)), color: .cyan)
+                                    }
+                                }
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.primary.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                                Spacer()
+
+                                Button("Reset Default") {
+                                    env.menuBarShowCPU = true
+                                    env.menuBarShowGPU = true
+                                    env.menuBarShowMemory = false
+                                    env.menuBarShowDisk = false
+                                    env.menuBarShowNetwork = false
+                                }
+                                .font(.system(size: 9))
+                                .buttonStyle(.plain)
+                                .foregroundColor(.secondary)
+                            }
+                            .padding(.top, 2)
+                        }
+
+                        Divider()
+
+                        // Behavior Toggles (Tight)
+                        VStack(spacing: 8) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
                                     Text("Keep in Menu Bar")
-                                        .font(.system(size: 13, weight: .medium))
-                                    Text("Closing the main window leaves live hardware metrics active in the macOS menu bar.")
-                                        .font(.caption)
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text("Closing the main window leaves live metrics active in the macOS menu bar.")
+                                        .font(.system(size: 10))
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
                                 Toggle("", isOn: $env.keepInMenuBar)
                                     .toggleStyle(.switch)
+                                    .controlSize(.small)
                                     .labelsHidden()
                                     .onChange(of: env.keepInMenuBar) { val in
                                         try? env.settingsRepo.setBool(key: "keep_in_menu_bar", value: val)
                                     }
                             }
 
-                            Divider()
-
-                            // Row: Launch at Login
-                            HStack(alignment: .center) {
-                                VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
                                     Text("Launch at Login (SMAppService)")
-                                        .font(.system(size: 13, weight: .medium))
-                                    Text("Start Task Manager automatically when your Mac boots up without background daemons.")
-                                        .font(.caption)
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text("Start Task Manager automatically on macOS boot without background daemons.")
+                                        .font(.system(size: 10))
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
                                 Toggle("", isOn: $env.launchAtLogin)
                                     .toggleStyle(.switch)
+                                    .controlSize(.small)
                                     .labelsHidden()
                                     .onChange(of: env.launchAtLogin) { val in
                                         try? env.loginItemService.setLaunchAtLogin(enabled: val)
@@ -69,20 +175,20 @@ public struct SettingsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 18)
 
                 // 2. Telemetry Refresh Rate
-                CardView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Telemetry & Sampling")
-                            .font(.system(size: 14, weight: .semibold))
+                CardView(padding: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Telemetry & Sampling Engine")
+                            .font(.system(size: 13, weight: .bold))
 
                         HStack(alignment: .center) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 1) {
                                 Text("Telemetry Update Frequency")
-                                    .font(.system(size: 13, weight: .medium))
-                                Text("Sampling rate for CPU, GPU, Memory, Disk, and Network monitors.")
-                                    .font(.caption)
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("Sampling rate for CPU, GPU, Memory, Disk, and Network rate monitors.")
+                                    .font(.system(size: 10))
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
@@ -93,7 +199,7 @@ public struct SettingsView: View {
                                 Text("Pause").tag(0.0)
                             }
                             .pickerStyle(.segmented)
-                            .frame(width: 320)
+                            .frame(width: 300)
                             .onChange(of: updateSpeed) { newVal in
                                 env.samplingCoordinator.samplingInterval = newVal
                             }
@@ -101,30 +207,30 @@ public struct SettingsView: View {
 
                         Divider()
 
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Image(systemName: "memorychip")
                                 .foregroundColor(.indigo)
-                                .font(.system(size: 13))
-                            Text("Telemetry is retained strictly in 60-sample in-memory ring buffers with zero disk writes.")
-                                .font(.caption)
+                                .font(.system(size: 11))
+                            Text("Telemetry is retained strictly in volatile 60-sample in-memory ring buffers with zero disk writes.")
+                                .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 18)
 
                 // 3. Theme & Appearance
-                CardView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Appearance")
-                            .font(.system(size: 14, weight: .semibold))
+                CardView(padding: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Visual Theme")
+                            .font(.system(size: 13, weight: .bold))
 
                         HStack(alignment: .center) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 1) {
                                 Text("Visual Theme Mode")
-                                    .font(.system(size: 13, weight: .medium))
-                                Text("Choose between dark mode, light mode, or matching macOS system appearance.")
-                                    .font(.caption)
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("Choose between dark mode, light mode, or system appearance.")
+                                    .font(.system(size: 10))
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
@@ -134,36 +240,36 @@ public struct SettingsView: View {
                                 Text("Dark").tag("dark")
                             }
                             .pickerStyle(.segmented)
-                            .frame(width: 320)
+                            .frame(width: 300)
                             .onChange(of: env.appearanceMode) { val in
                                 try? env.settingsRepo.set(key: "appearance", value: val)
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 18)
 
-                // 4. About & System Specs
-                CardView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 12) {
+                // 4. About & System Specs (Tightened)
+                CardView(padding: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 10) {
                             appLogoImage
-                                .frame(width: 44, height: 44)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+                                .frame(width: 34, height: 34)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 1) {
                                 Text("Task Manager for macOS")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.system(size: 14, weight: .bold))
                                 Text("Version 1.0 (Build 1) • Native Swift & Metal Engine")
-                                    .font(.caption)
+                                    .font(.system(size: 10))
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
                             Text("100% Offline")
-                                .font(.caption2.bold())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(Color.emerald.opacity(0.12))
                                 .foregroundColor(.emerald)
                                 .clipShape(Capsule())
@@ -171,10 +277,10 @@ public struct SettingsView: View {
 
                         Divider()
 
-                        // Aligned Technical Specifications Grid
-                        VStack(spacing: 8) {
+                        // Aligned Technical Specifications Grid (Tight)
+                        VStack(spacing: 5) {
                             specRow(label: "Device Model", value: env.deviceProfile.marketingName)
-                            specRow(label: "Processor", value: "\(env.deviceProfile.cpuName) (\(env.deviceProfile.physicalCores) P/E Cores • \(env.deviceProfile.logicalCores) Threads)")
+                            specRow(label: "Processor", value: "\(env.deviceProfile.cpuName) (\(env.deviceProfile.physicalCores) Cores • \(env.deviceProfile.logicalCores) Threads)")
                             specRow(label: "Graphics (GPU)", value: env.deviceProfile.gpuNames.first ?? "Apple Silicon GPU (Metal 3)")
                             specRow(label: "Architecture", value: "\(env.deviceProfile.architecture) (Unified Memory)")
                             specRow(label: "Installed RAM", value: env.deviceProfile.formattedMemory)
@@ -183,23 +289,82 @@ public struct SettingsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 18)
             }
-            .padding(.bottom, 36)
+            .padding(.bottom, 24)
         }
         .onAppear {
             updateSpeed = env.samplingCoordinator.samplingInterval
         }
     }
 
+    private func menuBarToggleChip(
+        title: String,
+        icon: String,
+        color: Color,
+        isOn: Binding<Bool>,
+        currentVal: String
+    ) -> some View {
+        Button(action: {
+            isOn.wrappedValue.toggle()
+        }) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(isOn.wrappedValue ? color : .secondary)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(.system(size: 10, weight: .bold))
+                    Text(currentVal)
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+
+                Image(systemName: isOn.wrappedValue ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 9))
+                    .foregroundColor(isOn.wrappedValue ? color : .secondary.opacity(0.4))
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 5)
+            .background(isOn.wrappedValue ? color.opacity(0.12) : Color.primary.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(isOn.wrappedValue ? color.opacity(0.4) : Color.primary.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func previewItem(icon: String, val: String, color: Color) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundColor(color)
+            Text(val)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+        }
+    }
+
+    private func formatCompactRate(_ bytesPerSec: Double) -> String {
+        if bytesPerSec >= 1_048_576 {
+            return String(format: "%.1fM", bytesPerSec / 1_048_576)
+        } else if bytesPerSec >= 1024 {
+            return String(format: "%.0fK", bytesPerSec / 1024)
+        } else {
+            return "0K"
+        }
+    }
+
     private func specRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.caption)
+                .font(.system(size: 11))
                 .foregroundColor(.secondary)
-                .frame(width: 150, alignment: .leading)
+                .frame(width: 130, alignment: .leading)
             Text(value)
-                .font(.caption.monospaced())
+                .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.primary)
                 .lineLimit(1)
             Spacer()

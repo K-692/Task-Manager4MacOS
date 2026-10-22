@@ -82,12 +82,12 @@ struct TaskManagerApp: App {
             }
         }
 
-        // Native Menu Bar Utility updating live every 1s
+        // Native Menu Bar Utility updating live every 1s with user-customized components
         MenuBarExtra {
             MenuBarContentView(sampling: env.samplingCoordinator)
                 .environmentObject(env)
         } label: {
-            MenuBarStatusLabel(sampling: env.samplingCoordinator)
+            MenuBarStatusLabel(env: env, sampling: env.samplingCoordinator)
         }
         .menuBarExtraStyle(.window)
     }
@@ -107,23 +107,72 @@ struct TaskManagerApp: App {
     }
 }
 
-/// Reactive status bar label displaying real-time CPU% and GPU% directly on the Mac top menu bar.
+/// Reactive status bar label displaying user-customized real-time telemetry on the Mac top menu bar.
 private struct MenuBarStatusLabel: View {
+    @ObservedObject var env: AppEnvironment
     @ObservedObject var sampling: SamplingCoordinator
 
     var body: some View {
         let cpu = Int(sampling.latestCPU?.value?.totalUsagePercent ?? 0.0)
         let gpu = Int(sampling.latestGPU?.value?.utilizationPercent ?? 0.0)
+        let mem = Int(sampling.latestMemory?.value?.usagePercentage ?? 0.0)
+        let disk = Int(sampling.latestStorage?.value?.first?.usagePercentage ?? 0.0)
+        let netIn = sampling.latestNetwork?.value?.totalBytesInPerSecond ?? 0.0
+        let netOut = sampling.latestNetwork?.value?.totalBytesOutPerSecond ?? 0.0
+        let netFormatted = formatCompactRate(netIn + netOut)
 
-        HStack(spacing: 3) {
-            Image(systemName: "cpu")
-            Text("\(cpu)%")
-                .monospacedDigit()
-            Text("•")
-                .foregroundColor(.secondary)
-            Image(systemName: "display.trianglebadge.exclamationmark")
-            Text("\(gpu)%")
-                .monospacedDigit()
+        let hasAny = env.menuBarShowCPU || env.menuBarShowGPU || env.menuBarShowMemory || env.menuBarShowDisk || env.menuBarShowNetwork
+
+        HStack(spacing: 4) {
+            if env.menuBarShowCPU || !hasAny {
+                HStack(spacing: 2) {
+                    Image(systemName: "cpu")
+                    Text("\(cpu)%")
+                        .monospacedDigit()
+                }
+            }
+
+            if env.menuBarShowGPU {
+                HStack(spacing: 2) {
+                    Image(systemName: "display.trianglebadge.exclamationmark")
+                    Text("\(gpu)%")
+                        .monospacedDigit()
+                }
+            }
+
+            if env.menuBarShowMemory {
+                HStack(spacing: 2) {
+                    Image(systemName: "memorychip")
+                    Text("\(mem)%")
+                        .monospacedDigit()
+                }
+            }
+
+            if env.menuBarShowDisk {
+                HStack(spacing: 2) {
+                    Image(systemName: "internaldrive")
+                    Text("\(disk)%")
+                        .monospacedDigit()
+                }
+            }
+
+            if env.menuBarShowNetwork {
+                HStack(spacing: 2) {
+                    Image(systemName: "network")
+                    Text(netFormatted)
+                        .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private func formatCompactRate(_ bytesPerSec: Double) -> String {
+        if bytesPerSec >= 1_048_576 {
+            return String(format: "%.1fM", bytesPerSec / 1_048_576)
+        } else if bytesPerSec >= 1024 {
+            return String(format: "%.0fK", bytesPerSec / 1024)
+        } else {
+            return "0K"
         }
     }
 }

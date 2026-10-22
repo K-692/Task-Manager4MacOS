@@ -114,10 +114,11 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - **VRAM / Unified Memory Tracking:** Real-time allocated system memory and active in-use VRAM.
 - **Metal Hardware Profile:** Dynamic device identification via Apple Metal (`MTLCopyAllDevices`).
 
-### 7. ⚙️ Single-Tab Aligned Settings Panel
-- Clean top clearance preventing overlap with macOS window control buttons.
-- Standardized 320pt pickers for Telemetry Update Frequency (`0.5s (Fast)`, `1.0s (Normal)`, `3.0s (Eco)`, `Pause`) and Appearance (`System`, `Light`, `Dark`).
-- Verified zero telemetry writes to SQLite beyond the 60-sample in-memory buffer.
+### 7. ⚙️ Single-Tab Tight Settings & Menu Bar Customization
+- **Tight Element Boundaries:** Clean, snug element boundaries with compact spacing and crisp contours.
+- **Customizable Menu Bar Widget:** Toggle any combination of **CPU**, **GPU**, **Memory**, **Disk**, and **Network** metrics to appear on the macOS menu bar with instant live preview.
+- **Unified Controls:** Standardized pickers for Telemetry Update Frequency (`0.5s`, `1.0s`, `3.0s`, `Pause`) and Appearance (`System`, `Light`, `Dark`).
+- **Desktop Widget Blueprint:** See [`Documentation/DesktopWidgetGuide.md`](Documentation/DesktopWidgetGuide.md) for full architectural patterns and Swift source code to add native macOS Sonoma/Sequoia Desktop Widgets.
 
 ---
 

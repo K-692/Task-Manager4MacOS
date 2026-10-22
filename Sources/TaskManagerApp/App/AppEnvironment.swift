@@ -25,6 +25,23 @@ public final class AppEnvironment: ObservableObject {
     @Published public var selectedProcessPID: Int32? = nil
     @Published public var isCommandPalettePresented: Bool = false
 
+    // Menu Bar Display Customization
+    @Published public var menuBarShowCPU: Bool = true {
+        didSet { try? settingsRepo.setBool(key: "menubar_show_cpu", value: menuBarShowCPU) }
+    }
+    @Published public var menuBarShowGPU: Bool = true {
+        didSet { try? settingsRepo.setBool(key: "menubar_show_gpu", value: menuBarShowGPU) }
+    }
+    @Published public var menuBarShowMemory: Bool = false {
+        didSet { try? settingsRepo.setBool(key: "menubar_show_memory", value: menuBarShowMemory) }
+    }
+    @Published public var menuBarShowDisk: Bool = false {
+        didSet { try? settingsRepo.setBool(key: "menubar_show_disk", value: menuBarShowDisk) }
+    }
+    @Published public var menuBarShowNetwork: Bool = false {
+        didSet { try? settingsRepo.setBool(key: "menubar_show_network", value: menuBarShowNetwork) }
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     public init(databaseURL: URL? = nil) {
@@ -72,6 +89,11 @@ public final class AppEnvironment: ObservableObject {
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
             self.keepInMenuBar = sRepo.getBool(key: "keep_in_menu_bar", default: true)
             self.launchAtLogin = loginItemService.isEnabled
+            self.menuBarShowCPU = sRepo.getBool(key: "menubar_show_cpu", default: true)
+            self.menuBarShowGPU = sRepo.getBool(key: "menubar_show_gpu", default: true)
+            self.menuBarShowMemory = sRepo.getBool(key: "menubar_show_memory", default: false)
+            self.menuBarShowDisk = sRepo.getBool(key: "menubar_show_disk", default: false)
+            self.menuBarShowNetwork = sRepo.getBool(key: "menubar_show_network", default: false)
 
             reloadCapabilities()
         } catch {
