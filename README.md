@@ -1,5 +1,3 @@
-# Task Manager for macOS
-
 <div align="center">
 
 <img src="icon/icon.png" width="128" height="128" alt="Task Manager for macOS Logo" />

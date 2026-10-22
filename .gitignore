@@ -11,8 +11,9 @@ xcuserdata/
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon
 ._*
+!icon/
+!icon/**
 
 # Archives & Builds
 *.dmg
