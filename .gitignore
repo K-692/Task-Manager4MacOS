@@ -1,0 +1,26 @@
+# Xcode / Swift Package Manager
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Archives & Builds
+*.dmg
+*.pkg
+*.app
+dist/
+artifacts/
+
+# Logs & Diagnostics
+*.log
+scratch/
