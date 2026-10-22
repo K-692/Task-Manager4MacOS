@@ -52,25 +52,22 @@ public final class SamplingCoordinator: ObservableObject {
 
     // Rolling ring buffers for live charts (last 60 samples)
     @Published public private(set) var cpuHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var memoryHistory = MetricRingBuffer(capacity: 60)
     @Published public private(set) var gpuHistory = MetricRingBuffer(capacity: 60)
+    @Published public private(set) var memoryHistory = MetricRingBuffer(capacity: 60)
+    @Published public private(set) var diskHistory = MetricRingBuffer(capacity: 60)
     @Published public private(set) var networkInHistory = MetricRingBuffer(capacity: 60)
     @Published public private(set) var networkOutHistory = MetricRingBuffer(capacity: 60)
+    @Published public private(set) var networkTotalHistory = MetricRingBuffer(capacity: 60)
 
-    @Published public var isDashboardActive: Bool = false {
-        didSet {
-            // Speed up sampling when active, slow down when in background
-            if isDashboardActive {
-                startSampling(interval: 1.0)
-            } else {
-                startSampling(interval: 3.0)
-            }
-        }
-    }
+    @Published public var isDashboardActive: Bool = true
 
     @Published public var samplingInterval: TimeInterval = 1.0 {
         didSet {
-            startSampling(interval: samplingInterval)
+            if samplingInterval > 0 {
+                startSampling(interval: samplingInterval)
+            } else {
+                stopSampling()
+            }
         }
     }
 
@@ -98,16 +95,41 @@ public final class SamplingCoordinator: ObservableObject {
 
         // Initial sample
         refreshAll()
+
+        // Pre-fill ring buffers with baseline readings so charts render smoothly from t=0
+        seedInitialHistory()
+
         startSampling(interval: samplingInterval)
+    }
+
+    private func seedInitialHistory() {
+        let cpuVal = latestCPU?.value?.totalUsagePercent ?? 0.0
+        let gpuVal = latestGPU?.value?.utilizationPercent ?? 0.0
+        let memVal = latestMemory?.value?.usagePercentage ?? 50.0
+        let diskVal = latestStorage?.value?.first?.usagePercentage ?? 50.0
+
+        for _ in 0..<60 {
+            cpuHistory.append(cpuVal)
+            gpuHistory.append(gpuVal)
+            memoryHistory.append(memVal)
+            diskHistory.append(diskVal)
+            networkInHistory.append(0.0)
+            networkOutHistory.append(0.0)
+            networkTotalHistory.append(0.0)
+        }
     }
 
     public func startSampling(interval: TimeInterval = 1.0) {
         stopSampling()
-        samplingTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        guard interval > 0 else { return }
+
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.tick()
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        samplingTimer = timer
     }
 
     public func stopSampling() {
@@ -116,38 +138,43 @@ public final class SamplingCoordinator: ObservableObject {
     }
 
     public func tick() {
-        // High frequency: CPU, Memory, GPU, Network, Processes
+        // Sample core providers: CPU, Memory, GPU, Network, Processes, Storage
         let cpu = cpuProvider.sample()
         let mem = memoryProvider.sample()
         let gpu = gpuProvider.sample()
         let net = networkProvider.sample()
         let proc = processProvider.sample()
+        let storage = storageProvider.sample()
 
         latestCPU = cpu
         latestMemory = mem
         latestGPU = gpu
         latestNetwork = net
         latestProcesses = proc
+        latestStorage = storage
 
         if let cpuVal = cpu.value {
             cpuHistory.append(cpuVal.totalUsagePercent)
         }
+        if let gpuVal = gpu.value {
+            gpuHistory.append(gpuVal.utilizationPercent)
+        }
         if let memVal = mem.value {
             memoryHistory.append(memVal.usagePercentage)
         }
-        if let gpuVal = gpu.value {
-            gpuHistory.append(gpuVal.utilizationPercent)
+        if let diskVal = storage.value?.first?.usagePercentage {
+            diskHistory.append(diskVal)
         }
         if let netVal = net.value {
             networkInHistory.append(netVal.totalBytesInPerSecond)
             networkOutHistory.append(netVal.totalBytesOutPerSecond)
+            networkTotalHistory.append(netVal.totalBytesInPerSecond + netVal.totalBytesOutPerSecond)
         }
 
         rollupCounter += 1
 
-        // Lower frequency: Storage and Battery (every 5 ticks)
+        // Battery sampled every 5 ticks
         if rollupCounter % 5 == 0 {
-            latestStorage = storageProvider.sample()
             latestBattery = batteryProvider.sample()
         }
     }
@@ -164,15 +191,19 @@ public final class SamplingCoordinator: ObservableObject {
         if let cpuVal = latestCPU?.value {
             cpuHistory.append(cpuVal.totalUsagePercent)
         }
+        if let gpuVal = latestGPU?.value {
+            gpuHistory.append(gpuVal.utilizationPercent)
+        }
         if let memVal = latestMemory?.value {
             memoryHistory.append(memVal.usagePercentage)
         }
-        if let gpuVal = latestGPU?.value {
-            gpuHistory.append(gpuVal.utilizationPercent)
+        if let diskVal = latestStorage?.value?.first?.usagePercentage {
+            diskHistory.append(diskVal)
         }
         if let netVal = latestNetwork?.value {
             networkInHistory.append(netVal.totalBytesInPerSecond)
             networkOutHistory.append(netVal.totalBytesOutPerSecond)
+            networkTotalHistory.append(netVal.totalBytesInPerSecond + netVal.totalBytesOutPerSecond)
         }
     }
 }

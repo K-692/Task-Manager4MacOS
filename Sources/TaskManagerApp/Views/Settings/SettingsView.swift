@@ -10,19 +10,19 @@ public struct SettingsView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
-                // Header
+            VStack(alignment: .leading, spacing: 18) {
+                // Header (with proper top clearance so title is never clipped)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Settings")
                         .font(.system(size: 24, weight: .bold))
-                    Text("Configure Task Manager runtime behavior, appearance, and telemetry rates.")
+                    Text("Configure Task Manager runtime behavior, telemetry frequency, and appearance.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
-                .padding(.top, AppTheme.Spacing.md)
+                .padding(.horizontal, 28)
+                .padding(.top, 24)
 
-                // 1. Behavior & Menu Bar
+                // 1. Application & Background Behavior
                 CardView {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Application & Background Behavior")
@@ -69,7 +69,7 @@ public struct SettingsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
+                .padding(.horizontal, 28)
 
                 // 2. Telemetry Refresh Rate
                 CardView {
@@ -81,19 +81,19 @@ public struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Telemetry Update Frequency")
                                     .font(.system(size: 13, weight: .medium))
-                                Text("Sampling rate for CPU, GPU, Memory, and Network rate monitors.")
+                                Text("Sampling rate for CPU, GPU, Memory, Disk, and Network monitors.")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
                             Picker("Update Speed", selection: $updateSpeed) {
-                                Text("High (0.5s)").tag(0.5)
-                                Text("Normal (1.0s)").tag(1.0)
-                                Text("Low (3.0s)").tag(3.0)
-                                Text("Paused").tag(0.0)
+                                Text("0.5s (Fast)").tag(0.5)
+                                Text("1.0s (Normal)").tag(1.0)
+                                Text("3.0s (Eco)").tag(3.0)
+                                Text("Pause").tag(0.0)
                             }
                             .pickerStyle(.segmented)
-                            .frame(width: 300)
+                            .frame(width: 320)
                             .onChange(of: updateSpeed) { newVal in
                                 env.samplingCoordinator.samplingInterval = newVal
                             }
@@ -105,13 +105,13 @@ public struct SettingsView: View {
                             Image(systemName: "memorychip")
                                 .foregroundColor(.indigo)
                                 .font(.system(size: 13))
-                            Text("Performance metrics are retained strictly in an ephemeral 60-sample in-memory ring buffer with zero disk writes.")
+                            Text("Telemetry is retained strictly in 60-sample in-memory ring buffers with zero disk writes.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
+                .padding(.horizontal, 28)
 
                 // 3. Theme & Appearance
                 CardView {
@@ -129,19 +129,19 @@ public struct SettingsView: View {
                             }
                             Spacer()
                             Picker("Theme", selection: $env.appearanceMode) {
-                                Text("Match System").tag("system")
+                                Text("System").tag("system")
                                 Text("Light").tag("light")
                                 Text("Dark").tag("dark")
                             }
                             .pickerStyle(.segmented)
-                            .frame(width: 280)
+                            .frame(width: 320)
                             .onChange(of: env.appearanceMode) { val in
                                 try? env.settingsRepo.set(key: "appearance", value: val)
                             }
                         }
                     }
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
+                .padding(.horizontal, 28)
 
                 // 4. About & System Specs
                 CardView {
@@ -175,17 +175,17 @@ public struct SettingsView: View {
                         VStack(spacing: 8) {
                             specRow(label: "Device Model", value: env.deviceProfile.marketingName)
                             specRow(label: "Processor", value: "\(env.deviceProfile.cpuName) (\(env.deviceProfile.physicalCores) P/E Cores • \(env.deviceProfile.logicalCores) Threads)")
+                            specRow(label: "Graphics (GPU)", value: env.deviceProfile.gpuNames.first ?? "Apple Silicon GPU (Metal 3)")
                             specRow(label: "Architecture", value: "\(env.deviceProfile.architecture) (Unified Memory)")
                             specRow(label: "Installed RAM", value: env.deviceProfile.formattedMemory)
-                            specRow(label: "Graphics (GPU)", value: env.deviceProfile.gpuNames.first ?? "Apple Silicon GPU")
                             specRow(label: "Operating System", value: "macOS \(env.deviceProfile.osVersion) (\(env.deviceProfile.osBuild))")
                             specRow(label: "Software License", value: "MIT Open Source License")
                         }
                     }
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
+                .padding(.horizontal, 28)
             }
-            .padding(.bottom, AppTheme.Spacing.xxl)
+            .padding(.bottom, 36)
         }
         .onAppear {
             updateSpeed = env.samplingCoordinator.samplingInterval
@@ -197,7 +197,7 @@ public struct SettingsView: View {
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
-                .frame(width: 140, alignment: .leading)
+                .frame(width: 150, alignment: .leading)
             Text(value)
                 .font(.caption.monospaced())
                 .foregroundColor(.primary)

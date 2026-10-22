@@ -214,3 +214,54 @@ public struct NetworkThroughputChart: View {
         .frame(height: 180)
     }
 }
+
+/// Interactive Swift Charts time-series view for Disk space & activity.
+public struct DiskTimeSeriesChart: View {
+    public let dataPoints: [Double]
+
+    public init(dataPoints: [Double]) {
+        self.dataPoints = dataPoints
+    }
+
+    public var body: some View {
+        let points = dataPoints.enumerated().map { MetricPoint(id: $0.offset, value: $0.element) }
+
+        Chart(points) { point in
+            AreaMark(
+                x: .value("Time", point.id),
+                y: .value("Disk %", point.value)
+            )
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [Color.emerald.opacity(0.35), Color.emerald.opacity(0.0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            LineMark(
+                x: .value("Time", point.id),
+                y: .value("Disk %", point.value)
+            )
+            .foregroundStyle(Color.emerald)
+            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        }
+        .chartYScale(domain: 0...100)
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: [0, 25, 50, 75, 100]) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                    .foregroundStyle(Color.secondary.opacity(0.2))
+                AxisValueLabel {
+                    if let intVal = value.as(Int.self) {
+                        Text("\(intVal)%")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .frame(height: 180)
+    }
+}
+

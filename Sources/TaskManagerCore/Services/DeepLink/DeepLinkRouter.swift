@@ -6,6 +6,12 @@ public enum AppDestination: Hashable, Codable, Sendable {
     case processes
     case startupApps
     case settings
+    // Hardware Telemetry Dedicated Tabs
+    case cpu
+    case gpu
+    case memory
+    case disk
+    case network
 }
 
 /// Router parsing and resolving deep links into app navigation destinations.
@@ -18,8 +24,18 @@ public struct DeepLinkRouter {
         let host = url.host?.lowercased() ?? ""
 
         switch host {
-        case "dashboard", "performance", "hardware":
+        case "dashboard", "performance":
             return .dashboard
+        case "cpu":
+            return .cpu
+        case "gpu":
+            return .gpu
+        case "memory", "mem":
+            return .memory
+        case "disk", "storage":
+            return .disk
+        case "network", "net":
+            return .network
         case "processes":
             return .processes
         case "startup":
@@ -31,3 +47,4 @@ public struct DeepLinkRouter {
         }
     }
 }
+

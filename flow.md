@@ -1,7 +1,7 @@
 # Task Manager for macOS — Implementation Architecture & Research Journey
 
 **Document Purpose:** Living architecture specification, research paper reference, and end-to-end technical implementation log for the **Task Manager for macOS** desktop platform.  
-**Version:** 2.1.0  
+**Version:** 2.2.0  
 **Target Platform:** macOS 13.0+ (Ventura, Sonoma, Sequoia)  
 **Binary Architecture:** Universal (`arm64` Apple Silicon + `x86_64` Intel)  
 **License:** MIT License  
@@ -20,8 +20,10 @@ On macOS, users have historically been fragmented between:
 Can an independent, zero-dependency, open-source macOS desktop application achieve complete parity with the **Windows Task Manager** model by:
 - Operating strictly within user-space privilege boundaries (zero root daemons or private kernel extensions),
 - Delivering live, empirical **GPU engine visualization** (Device, Renderer, Tiler, and VRAM) alongside multi-core CPU, Mach VM memory, storage, and network telemetry,
-- Organizing all hardware and performance telemetry into a single, unified, high-density technical dashboard landing page without nested sub-menus,
-- Streaming live sparkline micro-graphs directly within the primary navigation sidebar (in order: CPU $\rightarrow$ GPU $\rightarrow$ Memory $\rightarrow$ Disk $\rightarrow$ Network),
+- Organizing all hardware and performance telemetry into a single, unified, **non-scrollable command-center dashboard landing page** without nested sub-menus,
+- Streaming live, right-aligned sparkline micro-graphs directly within the primary navigation sidebar (in order: CPU $\rightarrow$ GPU $\rightarrow$ Memory $\rightarrow$ Disk $\rightarrow$ Network),
+- Providing dedicated, in-depth architectural diagnostic tabs for each isolated hardware component,
+- Updating macOS status bar metrics in real time on a 1-second continuous cadence,
 - Maintaining a featherlight runtime profile (< 0.4% CPU idle, ~25MB memory footprint) using 100% in-memory ephemeral telemetry buffers (zero disk I/O writes for metrics), and
 - Operating 100% offline with zero remote telemetry or account registration?
 
@@ -35,10 +37,12 @@ This document formalizes the architecture, implementation journey, and technical
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                       SwiftUI Native Presentation                           │
 │   • Leftmost Sidebar: App Brand, Nav Items, Live Sparklines (CPU, GPU, RAM) │
-│   • Dashboard (Landing Page): Unified High-Density Performance & Specs      │
+│   • Dashboard (Landing Page): Non-Scrollable Window Command Center Grid     │
+│   • Dedicated Hardware Tabs: CPU, GPU, Memory, Disk, Network In-Depth Views │
 │   • Processes: Software Inventory, Memory-First Default Sort, End Task      │
 │   • Startup Apps: SMAppService Login Items & Launch Services                │
-│   • Settings: Single-Tab Technical Configuration Panel                      │
+│   • Settings: Single-Tab Cleanly Aligned Technical Configuration Panel      │
+│   • macOS Status Bar: Real-Time 1-Second CPU% and GPU% MenuBarExtra Ticker  │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │ State & Action Dispatch
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
@@ -68,11 +72,18 @@ This document formalizes the architecture, implementation journey, and technical
 
 ## 3. Ephemeral In-Memory Telemetry Model (Zero Disk Writes)
 
-In contrast to initial prototypes that periodically downsampled telemetry metrics into SQLite rollups, Task Manager v2.1.0 adopts a **purely in-memory ephemeral telemetry model**:
+In contrast to initial prototypes that periodically downsampled telemetry metrics into SQLite rollups, Task Manager v2.2.0 adopts a **purely in-memory ephemeral telemetry model**:
 
-1. **Ring Buffers (`MetricRingBuffer`):** Fixed-capacity buffers (`capacity: 60`) allocate exactly 60 double-precision floating-point values for CPU, GPU, Memory, Network In, and Network Out.
+1. **Ring Buffers (`MetricRingBuffer`):** Fixed-capacity buffers (`capacity: 60`) allocate exactly 60 double-precision floating-point values for:
+   - `cpuHistory` (CPU total load %)
+   - `gpuHistory` (GPU utilization %)
+   - `memoryHistory` (RAM footprint %)
+   - `diskHistory` (Primary volume capacity %)
+   - `networkInHistory` (Inbound bytes/sec)
+   - `networkOutHistory` (Outbound bytes/sec)
+   - `networkTotalHistory` (Combined throughput)
 2. **Zero Disk Wear:** Disk write operations for telemetry are completely eliminated. This protects SSD health, prevents disk I/O bottlenecks during peak system stress, and keeps process memory footprint pinned under 30MB.
-3. **High-Frequency Sidebar Sparklines:** The lightweight `SparklineView` component consumes the in-memory ring buffers directly using Apple's hardware-accelerated `SwiftUI.Canvas` API, rendering sub-millisecond line and gradient strokes directly in the sidebar navigation.
+3. **High-Frequency Sidebar Sparklines:** The lightweight `SparklineView` component consumes the in-memory ring buffers directly using Apple's hardware-accelerated `SwiftUI.Canvas` API, rendering sub-millisecond line, center reference lines, and gradient strokes directly in the sidebar navigation with zero text truncation.
 
 ---
 
@@ -125,6 +136,13 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 - **Single-Tab Settings Panel:** Consolidated all preferences into a single, beautifully aligned, organized technical tab with zero nested tab-switchers.
 - **Ephemeral Telemetry:** Removed periodic SQLite rollups; performance metrics are strictly in-memory (60s ring buffers).
 
+### Phase 4: Non-Scrollable Dashboard, Component Detail Routing, Real-Time Cadence (v2.2.0)
+- **Non-Scrollable Single-Window Dashboard:** Re-architected `PerformanceView` into a responsive single-window grid that fits within standard viewport dimensions without vertical scrolling. Arranged as a 2-row grid: Row 1 (CPU & GPU side-by-side, 50%/50%), Row 2 (Memory, Disk, Network side-by-side, 33%/33%/33%), with interactive "Details →" routing.
+- **Dedicated Telemetry Detail Views:** Implemented dedicated in-depth inspection views (`CPUDetailView`, `GPUDetailView`, `MemoryDetailView`, `StorageView`, `NetworkView`) that display exclusive, component-specific metrics and hardware pipelines when clicked in the sidebar.
+- **Sidebar Real-Time Updates & Alignment Fix:** Fixed `SparklineView` coordinate mapping to right-aligned rolling buffer coordinates with center reference lines and current indicator dots; resolved label truncation via dedicated 72pt columns; bound `MainLayoutView` directly to reactive `SamplingCoordinator` updates for 60fps telemetry.
+- **Mac Menu Bar 1s Real-Time Sync:** Native `MenuBarExtra` custom label now displays real-time CPU% and GPU% directly on the macOS menu bar, refreshed continuously on a 1-second cadence using RunLoop `.common` mode without background throttling.
+- **Settings Panel Precision Alignment:** Cleared top window title bar overlap; standardized picker widths (320pt) for both Telemetry Frequency and Theme Mode; perfectly aligned technical specs grid; confirmed zero telemetry retention in SQLite beyond 60s ephemeral ring buffers.
+
 ---
 
 ## 7. Final Repository Structure
@@ -151,5 +169,7 @@ Task-Manager/
         ├── App/                         # TaskManagerApp, AppEnvironment
         ├── DesignSystem/                # Theme, CardView, ChartViews, SparklineView
         ├── Resources/                   # icon.png resource bundle
-        └── Views/                       # MainLayoutView, ProcessesView, PerformanceView, etc.
+        └── Views/                       # MainLayoutView, ProcessesView, PerformanceView,
+                                         # CPUDetailView, GPUDetailView, MemoryDetailView,
+                                         # StorageView, NetworkView, SettingsView, etc.
 ```

@@ -25,6 +25,8 @@ public final class AppEnvironment: ObservableObject {
     @Published public var selectedProcessPID: Int32? = nil
     @Published public var isCommandPalettePresented: Bool = false
 
+    private var cancellables = Set<AnyCancellable>()
+
     public init(databaseURL: URL? = nil) {
         do {
             let dbStore: SQLiteStore
@@ -54,8 +56,17 @@ public final class AppEnvironment: ObservableObject {
             self.deviceProfile = profService.buildProfile()
 
             self.capabilityRegistry = CapabilityRegistry(profileService: profService)
-            self.samplingCoordinator = SamplingCoordinator(rollupRepository: rRepo)
+            let coordinator = SamplingCoordinator(rollupRepository: rRepo)
+            self.samplingCoordinator = coordinator
             self.loginItemService = LoginItemService()
+
+            // Forward telemetry sampling ticks to notify all views observing env
+            coordinator.objectWillChange
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.objectWillChange.send()
+                }
+                .store(in: &cancellables)
 
             // Load saved settings
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")

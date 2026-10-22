@@ -9,7 +9,7 @@ struct TaskManagerApp: App {
         WindowGroup("Task Manager") {
             MainLayoutView()
                 .environmentObject(env)
-                .frame(minWidth: 950, minHeight: 620)
+                .frame(minWidth: 960, minHeight: 640)
                 .preferredColorScheme(colorScheme)
                 .onOpenURL { url in
                     handleDeepLink(url)
@@ -48,6 +48,33 @@ struct TaskManagerApp: App {
 
                 Divider()
 
+                Button("CPU Telemetry") {
+                    env.selectedDestination = .cpu
+                }
+                .keyboardShortcut("5", modifiers: .command)
+
+                Button("GPU Telemetry") {
+                    env.selectedDestination = .gpu
+                }
+                .keyboardShortcut("6", modifiers: .command)
+
+                Button("Memory Telemetry") {
+                    env.selectedDestination = .memory
+                }
+                .keyboardShortcut("7", modifiers: .command)
+
+                Button("Disk Telemetry") {
+                    env.selectedDestination = .disk
+                }
+                .keyboardShortcut("8", modifiers: .command)
+
+                Button("Network Telemetry") {
+                    env.selectedDestination = .network
+                }
+                .keyboardShortcut("9", modifiers: .command)
+
+                Divider()
+
                 Button("Refresh Now") {
                     env.samplingCoordinator.refreshAll()
                 }
@@ -55,10 +82,12 @@ struct TaskManagerApp: App {
             }
         }
 
-        // Native Menu Bar Utility
-        MenuBarExtra("Task Manager", systemImage: "cpu") {
-            MenuBarContentView()
+        // Native Menu Bar Utility updating live every 1s
+        MenuBarExtra {
+            MenuBarContentView(sampling: env.samplingCoordinator)
                 .environmentObject(env)
+        } label: {
+            MenuBarStatusLabel(sampling: env.samplingCoordinator)
         }
         .menuBarExtraStyle(.window)
     }
@@ -74,6 +103,27 @@ struct TaskManagerApp: App {
     private func handleDeepLink(_ url: URL) {
         if let dest = DeepLinkRouter.destination(from: url) {
             env.selectedDestination = dest
+        }
+    }
+}
+
+/// Reactive status bar label displaying real-time CPU% and GPU% directly on the Mac top menu bar.
+private struct MenuBarStatusLabel: View {
+    @ObservedObject var sampling: SamplingCoordinator
+
+    var body: some View {
+        let cpu = Int(sampling.latestCPU?.value?.totalUsagePercent ?? 0.0)
+        let gpu = Int(sampling.latestGPU?.value?.utilizationPercent ?? 0.0)
+
+        HStack(spacing: 3) {
+            Image(systemName: "cpu")
+            Text("\(cpu)%")
+                .monospacedDigit()
+            Text("•")
+                .foregroundColor(.secondary)
+            Image(systemName: "display.trianglebadge.exclamationmark")
+            Text("\(gpu)%")
+                .monospacedDigit()
         }
     }
 }

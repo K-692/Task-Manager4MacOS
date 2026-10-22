@@ -44,6 +44,26 @@ public struct MemoryMetrics: Codable, Sendable {
     public var formattedTotal: String {
         ByteCountFormatter.string(fromByteCount: Int64(totalBytes), countStyle: .memory)
     }
+
+    public var formattedFree: String {
+        ByteCountFormatter.string(fromByteCount: Int64(freeBytes), countStyle: .memory)
+    }
+
+    public var formattedWired: String {
+        ByteCountFormatter.string(fromByteCount: Int64(wiredBytes), countStyle: .memory)
+    }
+
+    public var formattedActive: String {
+        ByteCountFormatter.string(fromByteCount: Int64(activeBytes), countStyle: .memory)
+    }
+
+    public var formattedCompressed: String {
+        ByteCountFormatter.string(fromByteCount: Int64(compressedBytes), countStyle: .memory)
+    }
+
+    public var formattedInactive: String {
+        ByteCountFormatter.string(fromByteCount: Int64(inactiveBytes), countStyle: .memory)
+    }
 }
 
 /// Provider for Memory metrics using Mach VM statistics and system pressure.

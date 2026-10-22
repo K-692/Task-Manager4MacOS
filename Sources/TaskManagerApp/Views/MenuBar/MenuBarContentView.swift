@@ -4,15 +4,18 @@ import TaskManagerCore
 /// Compact menu-bar surface for instant hardware & process monitoring.
 public struct MenuBarContentView: View {
     @EnvironmentObject private var env: AppEnvironment
+    @ObservedObject private var sampling: SamplingCoordinator
 
-    public init() {}
+    public init(sampling: SamplingCoordinator) {
+        self.sampling = sampling
+    }
 
     public var body: some View {
-        let cpu = env.samplingCoordinator.latestCPU?.value
-        let mem = env.samplingCoordinator.latestMemory?.value
-        let gpu = env.samplingCoordinator.latestGPU?.value
-        let net = env.samplingCoordinator.latestNetwork?.value
-        let battery = env.samplingCoordinator.latestBattery?.value
+        let cpu = sampling.latestCPU?.value
+        let mem = sampling.latestMemory?.value
+        let gpu = sampling.latestGPU?.value
+        let net = sampling.latestNetwork?.value
+        let battery = sampling.latestBattery?.value
 
         VStack(alignment: .leading, spacing: 12) {
             // Header with App Name and Quick Status
@@ -33,9 +36,9 @@ public struct MenuBarContentView: View {
 
             Divider()
 
-            // Hardware Telemetry Rows
+            // Hardware Telemetry Rows (Strict Order: CPU -> GPU -> Memory -> Disk -> Network)
             VStack(spacing: 8) {
-                // CPU Row
+                // 1. CPU Row
                 HStack {
                     Label("CPU", systemImage: "cpu")
                         .font(.caption)
@@ -47,7 +50,7 @@ public struct MenuBarContentView: View {
                         .bold()
                 }
 
-                // GPU Row (Immediately after CPU)
+                // 2. GPU Row (Immediately after CPU)
                 HStack {
                     Label("GPU", systemImage: "display.trianglebadge.exclamationmark")
                         .font(.caption)
@@ -59,7 +62,7 @@ public struct MenuBarContentView: View {
                         .bold()
                 }
 
-                // Memory Row
+                // 3. Memory Row
                 HStack {
                     Label("Memory", systemImage: "memorychip")
                         .font(.caption)
@@ -70,8 +73,8 @@ public struct MenuBarContentView: View {
                         .font(.caption.monospaced())
                 }
 
-                // Disk Row
-                if let disk = env.samplingCoordinator.latestStorage?.value?.first {
+                // 4. Disk Row
+                if let disk = sampling.latestStorage?.value?.first {
                     HStack {
                         Label("Disk", systemImage: "internaldrive")
                             .font(.caption)
@@ -83,7 +86,7 @@ public struct MenuBarContentView: View {
                     }
                 }
 
-                // Network Row
+                // 5. Network Row
                 if let n = net {
                     HStack {
                         Label("Network", systemImage: "network")
