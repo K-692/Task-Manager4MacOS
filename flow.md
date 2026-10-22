@@ -153,6 +153,7 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 - **Single-Selection Menu Bar Widget (`MenuBarMetric`):** Implemented single-selection radio chips (`record.circle.fill` / `circle`) across CPU, GPU, Memory, Disk, and Network. Since the macOS menu bar displays only one icon and live telemetry metric at a time, selecting an item automatically deselects all others, updates the live menu bar preview ribbon, stores the selection in `SettingsRepository` under `"menubar_selected_metric"`, and renders the chosen metric in `MenuBarStatusLabel`.
 - **Telemetry & Sample Rate Layout Redesign:** Completely resolved the vertical dead space bug and clipped picker buttons. Replaced the native picker with custom, high-contrast segmented cadence pills (`0.5s Fast`, `1.0s Normal`, `3.0s Eco`, `Pause`), added an active cadence status indicator, and reinforced the volatile 60-sample in-memory ring buffer architecture.
 - **High-Density 2-Column Hardware Specifications Grid:** Converted technical specifications into a responsive 2-column `LazyVGrid` (3 rows total) displaying Device Model, Architecture, Processor, Installed RAM, Graphics (GPU) right alongside Processor, and macOS build with an offline status badge.
+- **Visual Assets & Embedded Documentation:** Integrated official application screenshots (`App_Screenshots/Dashboard&Menubar.png`, `App_Screenshots/CPU.png`, `App_Screenshots/Processes.png`, `App_Screenshots/Settings.png`) into `README.md` with concise functional descriptions for enhanced repository credibility and contributor onboarding.
 
 ---
 
@@ -162,10 +163,15 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 Task-Manager/
 ├── icon/
 │   └── icon.png                         # High-resolution application master icon
+├── App_Screenshots/                     # High-resolution retina application screenshots
+│   ├── Dashboard&Menubar.png            # Performance Dashboard & Mac top menu bar
+│   ├── CPU.png                          # Dedicated CPU architecture & diagnostic telemetry
+│   ├── Processes.png                    # Process inventory default-sorted by memory footprint
+│   └── Settings.png                     # Non-scrollable settings & menu bar widget configuration
 ├── dist/
 │   └── Task Manager.app                 # Compiled native macOS application bundle
 ├── flow.md                              # This living research architecture document
-├── README.md                            # Professional GitHub documentation with icon logo
+├── README.md                            # Professional GitHub documentation with embedded screenshots
 ├── Package.swift                        # SwiftPM manifest with bundled resources
 ├── Scripts/
 │   └── build-app.sh                     # Automated release compilation and .icns generator

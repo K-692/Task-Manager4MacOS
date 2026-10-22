@@ -11,7 +11,7 @@
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
-[![Storage](https://img.shields.io/badge/Telemetry-100%25%20In--Memory%20(Zero%20Disk%20I%2FO)-success?style=for-the-badge)](#-ephemeral-in-memory-telemetry)
+[![Storage](https://img.shields.io/badge/Telemetry-100%25%20In--Memory%20(Zero%20Disk%20I%2FO)-success?style=for-the-badge)](#-privacy--offline-guarantee)
 [![Privacy](https://img.shields.io/badge/Privacy-100%25%20Offline%20%26%20Zero%20Telemetry-emerald?style=for-the-badge)](#-privacy--offline-guarantee)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
@@ -19,9 +19,10 @@
   <strong>A high-performance, featherlight, Windows Task Manager inspired software and hardware monitor for macOS. Live multi-engine GPU metrics, non-scrollable command-center dashboard, Mach CPU loads, memory pressure graphs, dedicated hardware deep-dive tabs, per-process telemetry with instant "End Task", live menu bar status, and startup app control.</strong>
 </p>
 
+[Overview](#-overview) •
+[Screenshots](#-application-screenshots) •
 [Key Features](#-key-features) •
-[GPU Monitoring](#-gpu-visualization--telemetry) •
-[Architecture](#-architecture--design) •
+[GPU Monitoring](#6--gpu-visualization--telemetry-apple-metal--iokit) •
 [Installation & Build](#-installation--how-to-run) •
 [Keyboard Shortcuts](#-keyboard-shortcuts) •
 [Contributing](#-contributing)
@@ -40,7 +41,7 @@
 - **Non-Scrollable Single-Window Dashboard:** All 5 core performance graphs (CPU, GPU, Memory, Disk, Network) fit into one responsive viewport with zero vertical scrolling.
 - **Dedicated Hardware Diagnostic Tabs:** Clicking any component in the sidebar opens an in-depth diagnostic tab exclusively detailing that component's microarchitecture, pipelines, and top processes.
 - **Live Sidebar Sparklines:** Real-time mini-graphs rendered directly in the sidebar navigation in strict order: **CPU $\rightarrow$ GPU $\rightarrow$ Memory $\rightarrow$ Disk $\rightarrow$ Network**.
-- **Real-Time 1-Second Mac Menu Bar Ticker:** The native macOS menu bar status extra streams live CPU% and GPU% every second in real time.
+- **Real-Time 1-Second Mac Menu Bar Ticker:** The native macOS menu bar status extra streams live telemetry (CPU, GPU, Memory, Disk, or Network) every second in real time.
 - **True GPU Visualization:** Real-time GPU load percentage, renderer utilization, tiler utilization, and allocated/in-use VRAM directly from Apple Silicon & discrete GPUs.
 - **Memory-First Process Sorting:** Processes default-sorted by physical resident memory footprint for instant leak detection, with instant "End Task" process control.
 - **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear. No SQLite metric rollups $>60$ seconds.
@@ -48,27 +49,45 @@
 
 ---
 
-## ⚡ Key Features
+## 📸 Application Screenshots
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│  Task Manager (macOS)                                                  │
-├─────────────────────┬──────────────────────────────────────────────────┤
-│ ⚡ Dashboard (Live) │ [ SYSTEM SUMMARY: Apple M1 • 8 Cores • UMA ]     │
-│ 🚀 Processes (184)  ├────────────────────────┬─────────────────────────┤
-│ ⚡ Startup Apps     │ CPU: 14.2% [ ~~~/\~~~ ]│ GPU:  8.5% [ ~~~/~\~~ ] │
-│ ⚙️ Settings         │ User 8.2% • System 6.0%│ Renderer • Tiler • VRAM │
-├─────────────────────┼──────────┬─────────────┴───────────┬─────────────┤
-│ LIVE TELEMETRY      │ Memory   │ Disk                    │ Network     │
-│ CPU     [~~/\~] 14% │ 54%      │ 42%                     │ 1.2 MB/s    │
-│ GPU     [~/\~~]  8% │ [~~~~~~] │ [=======]               │ [__/\____]  │
-│ Memory  [~~~~~] 54% │ 18 GB/36 │ Macintosh HD (APFS)     │ ↓ 1.2M ↑ 45K│
-│ Disk    [====-] 42% ├──────────┴─────────────────────────┴─────────────┤
-│ Network [_/\__]1.2M │ PROCESSES (Default: Memory Footprint)            │
-│                     │ Xcode               8912   12.8%   2.4 GB  [End] │
-│                     │ Safari              1420    4.2%   340 MB  [End] │
-└─────────────────────┴──────────────────────────────────────────────────┘
-```
+### 1. Performance Dashboard & Real-Time macOS Menu Bar
+<p align="center">
+  <img src="App_Screenshots/Dashboard&Menubar.png" alt="Performance Dashboard and macOS Menu Bar" width="100%" />
+</p>
+
+*The non-scrollable Performance Dashboard delivers a unified command-center landing page featuring 60-second real-time charts for CPU, GPU, Memory, Disk, and Network, accompanied by live navigation sidebar sparklines and continuous macOS status bar telemetry.*
+
+---
+
+### 2. Dedicated Hardware Diagnostics (CPU Microarchitecture)
+<p align="center">
+  <img src="App_Screenshots/CPU.png" alt="Dedicated CPU Architecture & Diagnostics View" width="100%" />
+</p>
+
+*Dedicated hardware diagnostic views provide in-depth microarchitectural telemetry, core execution distributions, and top resource-consuming processes for each isolated hardware subsystem.*
+
+---
+
+### 3. Software & Process Management ("Processes" Tab)
+<p align="center">
+  <img src="App_Screenshots/Processes.png" alt="Processes Inventory and End Task" width="100%" />
+</p>
+
+*The Processes view provides a real-time inventory of all active macOS applications and background tasks default-sorted by memory footprint with instant "End Task" termination.*
+
+---
+
+### 4. Non-Scrollable Settings & Menu Bar Widget Customization
+<p align="center">
+  <img src="App_Screenshots/Settings.png" alt="Non-Scrollable Settings and Menu Bar Customization" width="100%" />
+</p>
+
+*The non-scrollable Settings panel offers single-selection macOS menu bar customization, configurable telemetry sampling cadences, visual themes, and complete offline hardware specifications.*
+
+---
+
+## ⚡ Key Features
 
 ### 1. ⚡ Non-Scrollable Performance Dashboard (Landing Page)
 - **Single-Window Command Center:** Displays real-time 60-second interactive charts for all 5 hardware components in a clean 2-row grid fitting completely within the window viewport with zero vertical scrolling:
@@ -96,8 +115,7 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - Uses right-aligned fixed-time coordinate mapping with center reference lines and active indicator dots.
 
 ### 4. 🍎 Real-Time 1-Second Mac Menu Bar Utility
-- **Live Status Bar Label:** The macOS top menu bar item displays live CPU% and GPU% updated continuously every 1 second:
-  `[CPU icon] 14% • G:8%`
+- **Live Status Bar Label:** The macOS top menu bar item displays user-selected real-time hardware telemetry updated continuously every 1 second (e.g. `[CPU icon] 18%` or `[GPU icon] 41%`).
 - **Popup Hardware Monitor:** Clicking the menu bar item opens a compact floating HUD displaying live CPU, GPU, Memory, Disk, Network, and Battery stats without opening the main window.
 - **Common Mode RunLoop:** Scheduling on `RunLoop.main` in `.common` mode guarantees uninterrupted 1-second updates during user mouse tracking and scrolling.
 
