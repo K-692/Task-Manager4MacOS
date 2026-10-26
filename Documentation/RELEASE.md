@@ -23,15 +23,21 @@ swift run TaskManagerTestRunner
 
 ## 2. Packaging Release Artifacts
 
-To produce a native macOS `.app` bundle:
+To produce a Universal (`arm64` + `x86_64`) macOS `.app` bundle:
+```bash
+./Scripts/build-universal.sh
+```
+
+To produce a single-architecture host `.app` bundle (for fast local development):
 ```bash
 ./Scripts/build-app.sh
 ```
 
-To produce a compressed, read-only `.dmg` installer with an Applications symlink:
+To produce the compressed, read-only Universal `.dmg` installer with an Applications symlink:
 ```bash
 ./Scripts/package-dmg.sh
 ```
+This automatically updates `releases/TaskManager-1.0.0-Universal.dmg` for repository distribution.
 
 ---
 

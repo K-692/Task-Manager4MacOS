@@ -22,6 +22,11 @@ xcuserdata/
 dist/
 artifacts/
 
+# Allow release DMGs for repository distribution
+!releases/
+!releases/**
+
+
 # Logs & Diagnostics
 *.log
 scratch/

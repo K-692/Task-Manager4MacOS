@@ -1,7 +1,7 @@
 # Task Manager for macOS — Implementation Architecture & Research Journey
 
 **Document Purpose:** Living architecture specification, research paper reference, and end-to-end technical implementation log for the **Task Manager for macOS** desktop platform.  
-**Version:** 2.4.0  
+**Version:** 2.5.0  
 **Target Platform:** macOS 13.0+ (Ventura, Sonoma, Sequoia)  
 **Binary Architecture:** Universal (`arm64` Apple Silicon + `x86_64` Intel)  
 **License:** MIT License  
@@ -155,6 +155,13 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 - **High-Density 2-Column Hardware Specifications Grid:** Converted technical specifications into a responsive 2-column `LazyVGrid` (3 rows total) displaying Device Model, Architecture, Processor, Installed RAM, Graphics (GPU) right alongside Processor, and macOS build with an offline status badge.
 - **Visual Assets & Embedded Documentation:** Integrated official application screenshots (`App_Screenshots/Dashboard&Menubar.png`, `App_Screenshots/CPU.png`, `App_Screenshots/Processes.png`, `App_Screenshots/Settings.png`) into `README.md` with concise functional descriptions for enhanced repository credibility and contributor onboarding.
 
+### Phase 7: Universal Binary Packaging & Repository DMG Distribution (v2.5.0)
+- **Dual-Architecture Compilation Pipeline:** Engineered `Scripts/build-universal.sh` to compile native release targets for both `arm64-apple-macosx13.0` and `x86_64-apple-macosx13.0` slices using Swift PM.
+- **Fat Binary Assembly via Lipo:** Merged architecture slices via `lipo -create` into a unified fat Mach-O executable containing full native instruction sets for Apple Silicon (M1/M2/M3/M4) and Intel 64-bit Macs.
+- **Complete .app Bundle Synthesizer:** Packaged the fat binary with SPM resource bundles, generated native high-resolution `AppIcon.icns` multi-scale iconsets (16x16 to 512x512@2x), generated production `Info.plist`, `PkgInfo`, and applied ad-hoc code signing (`codesign --force --deep --sign -`).
+- **Compressed Read-Only Universal DMG:** Automated `Scripts/package-dmg.sh` with `hdiutil create -format UDZO`, embedding the Universal `.app` bundle, a direct `/Applications` symlink, and custom `.VolumeIcon.icns`.
+- **Repository Distribution Directory:** Created `releases/TaskManager-1.0.0-Universal.dmg` directly tracked in the git repository (updating `.gitignore`), providing seamless one-click drag-and-drop installation for end users without needing compilation toolchains. Verified SHA-256 integrity and DMG mount compatibility.
+
 ---
 
 ## 7. Final Repository Structure
@@ -168,13 +175,21 @@ Task-Manager/
 │   ├── CPU.png                          # Dedicated CPU architecture & diagnostic telemetry
 │   ├── Processes.png                    # Process inventory default-sorted by memory footprint
 │   └── Settings.png                     # Non-scrollable settings & menu bar widget configuration
+├── releases/
+│   └── TaskManager-1.0.0-Universal.dmg  # Pre-compiled Universal DMG (Apple Silicon + Intel)
 ├── dist/
-│   └── Task Manager.app                 # Compiled native macOS application bundle
+│   ├── Task Manager.app                 # Compiled native macOS application bundle
+│   └── TaskManager-1.0.0-Universal.dmg  # Output Universal disk image
 ├── flow.md                              # This living research architecture document
 ├── README.md                            # Professional GitHub documentation with embedded screenshots
 ├── Package.swift                        # SwiftPM manifest with bundled resources
+├── Documentation/
+│   ├── DesktopWidgetGuide.md            # WidgetKit architecture guide
+│   └── RELEASE.md                       # Signing, notarization, and packaging guide
 ├── Scripts/
-│   └── build-app.sh                     # Automated release compilation and .icns generator
+│   ├── build-app.sh                     # Host release compilation and .app generator
+│   ├── build-universal.sh               # Universal (arm64 + x86_64) app builder
+│   └── package-dmg.sh                   # Automated Universal DMG packager
 └── Sources/
     ├── TaskManagerCore/                 # Telemetry & Domain Engine
     │   ├── Domain/                      # Hardware & Metric types

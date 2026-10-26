@@ -24,9 +24,10 @@ cp "${BUILD_DIR}/TaskManager" "${MACOS_DIR}/TaskManager"
 chmod +x "${MACOS_DIR}/TaskManager"
 
 # Copy SPM Resource Bundle if present
-if [ -d "${BUILD_DIR}/TaskManager_TaskManagerApp.bundle" ]; then
-    echo "==> Copying SwiftPM resource bundle..."
-    cp -R "${BUILD_DIR}/TaskManager_TaskManagerApp.bundle" "${RESOURCES_DIR}/"
+BUNDLE_PATH=$(find .build -name "TaskManager_TaskManagerApp.bundle" -type d | head -n 1)
+if [ -n "${BUNDLE_PATH}" ] && [ -d "${BUNDLE_PATH}" ]; then
+    echo "==> Copying SwiftPM resource bundle from ${BUNDLE_PATH}..."
+    cp -R "${BUNDLE_PATH}" "${RESOURCES_DIR}/"
 fi
 
 # Copy icon.png directly into Resources as well
@@ -97,5 +98,12 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
 </dict>
 </plist>
 EOF
+
+# Create PkgInfo
+echo -n "APPL????" > "${CONTENTS_DIR}/PkgInfo"
+
+# Ad-hoc sign the bundle
+echo "==> Signing application bundle (ad-hoc)..."
+codesign --force --deep --sign - "${APP_DIR}"
 
 echo "==> Successfully assembled ${APP_DIR} with AppIcon.icns!"

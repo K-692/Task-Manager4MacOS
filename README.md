@@ -6,6 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.0.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.0.0-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -17,11 +18,12 @@
   <strong>A high-performance, featherlight, Windows Task Manager inspired software and hardware monitor for macOS. Live multi-engine GPU metrics, non-scrollable command-center dashboard, Mach CPU loads, memory pressure graphs, dedicated hardware deep-dive tabs, per-process telemetry with instant "End Task", live menu bar status, and startup app control.</strong>
 </p>
 
+[Download DMG](#-download--installation) •
 [Overview](#-overview) •
 [Screenshots](#-application-screenshots) •
 [Key Features](#-key-features) •
 [GPU Monitoring](#6--gpu-visualization--telemetry-apple-metal--iokit) •
-[Installation & Build](#-installation--how-to-run) •
+[Installation & Build](#-download--installation) •
 [Keyboard Shortcuts](#-keyboard-shortcuts) •
 [Contributing](#-contributing)
 
@@ -141,27 +143,73 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 ---
 
-## 🛠 Installation & How to Run
+## 🛠 Download & Installation
 
-### Prerequisites
-- macOS 13.0 (Ventura), macOS 14.0 (Sonoma), or macOS 15.0 (Sequoia)
-- Xcode 15+ or Swift 5.9+ command-line tools
+### Option 1: Download Pre-Built Universal DMG (Recommended)
 
-### Option 1: One-Click Build & Launch App Bundle (Recommended)
+You can download the ready-to-run Universal macOS installer directly from the repository:
+
+👉 **[Download TaskManager-1.0.0-Universal.dmg (v1.0.0)](releases/TaskManager-1.0.0-Universal.dmg)**
+
+#### Release Verification & Specifications
+
+| Property | Details |
+|:---|:---|
+| **Package** | [`releases/TaskManager-1.0.0-Universal.dmg`](releases/TaskManager-1.0.0-Universal.dmg) |
+| **Version** | `1.0.0` |
+| **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
+| **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
+| **Package Size** | ~6.1 MB (Compressed Read-Only UDZO) |
+| **SHA-256 Checksum** | `b888ecda3b1101f875d8103b7d700f86f5793290fba606f4178e61fc0499dcbe` |
+
+#### Installation Steps:
+1. Download **[TaskManager-1.0.0-Universal.dmg](releases/TaskManager-1.0.0-Universal.dmg)**.
+2. Double-click the `.dmg` file to mount it.
+3. Drag **Task Manager** into your **Applications** folder shortcut.
+4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
+
+> [!TIP]
+> **macOS Gatekeeper Notice:** Since this open-source build is ad-hoc signed for independent distribution without an Apple Developer ID certificate, macOS may prompt an alert on the first launch. Simply right-click **Task Manager.app** in `/Applications` and choose **Open**, or run the following command in Terminal:
+> ```bash
+> xattr -cr "/Applications/Task Manager.app"
+> ```
+
+---
+
+### Option 2: Build & Package Universal DMG from Source
+
+To compile both `arm64` and `x86_64` architecture slices, generate the universal fat binary, assemble the `.app` bundle, and package a compressed `.dmg`:
 
 ```bash
 # Clone the repository
 git clone https://github.com/K-692/Task-Manager4MacOS.git
 cd Task-Manager4MacOS
 
-# Compile release binary and assemble native dist/Task Manager.app bundle
+# Build Universal app and package DMG
+./Scripts/package-dmg.sh
+```
+The output disk image will be created at `dist/TaskManager-1.0.0-Universal.dmg` and updated in `releases/`.
+
+---
+
+### Option 3: Compile Local App Bundle
+
+To assemble a native `.app` bundle directly on your Mac:
+
+```bash
+# For Universal (Apple Silicon + Intel) bundle:
+./Scripts/build-universal.sh
+
+# For native host architecture bundle:
 ./Scripts/build-app.sh
 
 # Open Task Manager
 open "dist/Task Manager.app"
 ```
 
-### Option 2: Run via Swift Package Manager
+---
+
+### Option 4: Run via Swift Package Manager
 
 ```bash
 swift run TaskManager
