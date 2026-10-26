@@ -1,7 +1,7 @@
 # Task Manager for macOS — Implementation Architecture & Research Journey
 
 **Document Purpose:** Living architecture specification, research paper reference, and end-to-end technical implementation log for the **Task Manager for macOS** desktop platform.  
-**Version:** 2.5.0  
+**Version:** 2.6.0  
 **Target Platform:** macOS 13.0+ (Ventura, Sonoma, Sequoia)  
 **Binary Architecture:** Universal (`arm64` Apple Silicon + `x86_64` Intel)  
 **License:** MIT License  
@@ -162,6 +162,14 @@ The application delivers parity with the Windows Task Manager "End Task" functio
 - **Compressed Read-Only Universal DMG:** Automated `Scripts/package-dmg.sh` with `hdiutil create -format UDZO`, embedding the Universal `.app` bundle, a direct `/Applications` symlink, and custom `.VolumeIcon.icns`.
 - **Repository Distribution Directory:** Created `releases/TaskManager-1.0.0-Universal.dmg` directly tracked in the git repository (updating `.gitignore`), providing seamless one-click drag-and-drop installation for end users without needing compilation toolchains. Verified SHA-256 integrity and DMG mount compatibility.
 
+### Phase 8: Resource Bundle Accessor Crash Fix, Window Reopening Lifecycle & Universal DMG (v2.6.0)
+- **Root Cause Diagnosis of EXC_BREAKPOINT Crash:** Diagnosed the runtime assertion failure crashing thread 0 at `closure #1 in variable initialization expression of static NSBundle.module + 584` (`SidebarContentView.appLogoImage.getter`). Swift Package Manager's synthesized `resource_bundle_accessor.swift` generated a non-optional `Bundle.module` accessor that unconditionally throws `Swift.fatalError` when packaged inside a macOS `.app` bundle because SPM expects the bundle at `Bundle.main.bundleURL.appendingPathComponent("TaskManager_TaskManagerApp.bundle")` instead of standard `Contents/Resources/`. While working temporarily on developer machines with active build caches, restarting the app from `/Applications` or without local build cache triggered the crash immediately.
+- **Safe Resilient Asset Resolver (`AppLogoView`):** Implemented `AppLogoView` in `Sources/TaskManagerApp/DesignSystem/Components/AppLogoView.swift`. It loads the application logo safely across multiple priority tiers (`NSImage.applicationIconName`, standard named `AppIcon`, `Bundle.main.url(forResource: "icon", withExtension: "png")` inside `Contents/Resources/`, sub-bundles with optional unwrapping, and development directory fallbacks), with a guaranteed non-crashing fallback to `Image(systemName: "cpu.fill")`. Completely eliminated all references to `Bundle.module`.
+- **Cleaned SwiftPM Manifest (`Package.swift`):** Excluded `Resources` in `Package.swift` for `TaskManagerApp` to prevent SPM from synthesizing `resource_bundle_accessor.swift` and eliminate the dead assertion trap from the compiled Mach-O binary.
+- **Application Window Reopening Lifecycle (`AppDelegate`):** Added `AppDelegate` conforming to `NSApplicationDelegate` with `applicationShouldHandleReopen(_:hasVisibleWindows:)` attached via `@NSApplicationDelegateAdaptor`. When users close the main window while the app stays active in the macOS status bar (`keepInMenuBar`), clicking the Dock icon or Launchpad now smoothly restores and orders front the main window.
+- **Enhanced Status Bar Action:** Updated `MenuBarContentView` "Open Task Manager" action to find existing windows or reopen via `taskmanager://dashboard` URL scheme.
+- **Packaged Production Universal DMG:** Re-executed `./Scripts/package-dmg.sh` to generate the updated dual-slice fat binary (x86_64 + arm64) and compressed read-only Universal DMG at `releases/TaskManager-1.0.0-Universal.dmg` with verified codesign (`valid on disk; satisfies its Designated Requirement`).
+
 ---
 
 ## 7. Final Repository Structure
@@ -182,7 +190,7 @@ Task-Manager/
 │   └── TaskManager-1.0.0-Universal.dmg  # Output Universal disk image
 ├── flow.md                              # This living research architecture document
 ├── README.md                            # Professional GitHub documentation with embedded screenshots
-├── Package.swift                        # SwiftPM manifest with bundled resources
+├── Package.swift                        # SwiftPM manifest without fragile bundle accessors
 ├── Documentation/
 │   ├── DesktopWidgetGuide.md            # WidgetKit architecture guide
 │   └── RELEASE.md                       # Signing, notarization, and packaging guide
@@ -199,9 +207,9 @@ Task-Manager/
     │   └── SystemMetrics/               # SamplingCoordinator & Hardware Providers (CPU, GPU, RAM, etc.)
     └── TaskManagerApp/                  # Presentation Layer
         ├── App/                         # TaskManagerApp, AppEnvironment
-        ├── DesignSystem/                # Theme, CardView, ChartViews, SparklineView
-        ├── Resources/                   # icon.png resource bundle
+        ├── DesignSystem/                # Theme, CardView, ChartViews, SparklineView, AppLogoView
+        ├── Resources/                   # icon.png master asset
         └── Views/                       # MainLayoutView, ProcessesView, PerformanceView,
                                          # CPUDetailView, GPUDetailView, MemoryDetailView,
-                                         # StorageView, NetworkView, SettingsView, etc.
+                                         # StorageView, NetworkView, SettingsView, MenuBar, etc.
 ```

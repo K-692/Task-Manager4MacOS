@@ -30,8 +30,8 @@ let package = Package(
                 "TaskManagerCore"
             ],
             path: "Sources/TaskManagerApp",
-            resources: [
-                .process("Resources")
+            exclude: [
+                "Resources"
             ]
         )
     ]

@@ -120,8 +120,13 @@ public struct MenuBarContentView: View {
             HStack {
                 Button("Open Task Manager") {
                     NSApp.activate(ignoringOtherApps: true)
-                    for window in NSApp.windows {
+                    var windowFound = false
+                    for window in NSApp.windows where window.canBecomeMain {
                         window.makeKeyAndOrderFront(nil)
+                        windowFound = true
+                    }
+                    if !windowFound, let url = URL(string: "taskmanager://dashboard") {
+                        NSWorkspace.shared.open(url)
                     }
                 }
                 .buttonStyle(.borderedProminent)

@@ -219,7 +219,7 @@ public struct SettingsView: View {
             CardView(padding: 10) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 10) {
-                        appLogoImage
+                        AppLogoView()
                             .frame(width: 28, height: 28)
                             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                             .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
@@ -411,18 +411,4 @@ public struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
-    private var appLogoImage: some View {
-        if let url = Bundle.module.url(forResource: "icon", withExtension: "png"),
-           let nsImage = NSImage(contentsOf: url) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .scaledToFit()
-        } else {
-            Image(systemName: "cpu.fill")
-                .resizable()
-                .scaledToFit()
-                .foregroundColor(.indigo)
-        }
-    }
 }

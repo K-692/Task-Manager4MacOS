@@ -42,7 +42,7 @@ mkdir -p "${RESOURCES_DIR}"
 cp "${DIST_DIR}/universal/TaskManager" "${MACOS_DIR}/TaskManager"
 chmod +x "${MACOS_DIR}/TaskManager"
 
-# Copy SPM Resource Bundle if present
+# Copy SPM Resource Bundle if present into Resources directory
 BUNDLE_PATH=$(find .build -name "TaskManager_TaskManagerApp.bundle" -type d | head -n 1)
 if [ -n "${BUNDLE_PATH}" ] && [ -d "${BUNDLE_PATH}" ]; then
     echo "==> Copying SwiftPM resource bundle from ${BUNDLE_PATH}..."

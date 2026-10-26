@@ -159,8 +159,8 @@ You can download the ready-to-run Universal macOS installer directly from the re
 | **Version** | `1.0.0` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
-| **Package Size** | ~6.1 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `b888ecda3b1101f875d8103b7d700f86f5793290fba606f4178e61fc0499dcbe` |
+| **Package Size** | ~5.4 MB (Compressed Read-Only UDZO) |
+| **SHA-256 Checksum** | `657a0f98d5f988c4fc01e029c91be999d22af781d9d946963dabd5a18e810a2e` |
 
 #### Installation Steps:
 1. Download **[TaskManager-1.0.0-Universal.dmg](releases/TaskManager-1.0.0-Universal.dmg)**.

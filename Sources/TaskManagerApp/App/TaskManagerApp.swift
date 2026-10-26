@@ -1,8 +1,24 @@
 import SwiftUI
 import TaskManagerCore
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            for window in sender.windows where window.canBecomeMain {
+                window.makeKeyAndOrderFront(self)
+                return true
+            }
+            if let url = URL(string: "taskmanager://dashboard") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        return true
+    }
+}
+
 @main
 struct TaskManagerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var env = AppEnvironment()
 
     var body: some Scene {
