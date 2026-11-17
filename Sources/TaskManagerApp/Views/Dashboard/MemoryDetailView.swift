@@ -5,6 +5,7 @@ import TaskManagerCore
 public struct MemoryDetailView: View {
     @EnvironmentObject private var env: AppEnvironment
     @ObservedObject private var sampling: SamplingCoordinator
+    @Environment(\.layoutClass) private var layoutClass
 
     public init(sampling: SamplingCoordinator) {
         self.sampling = sampling
@@ -15,239 +16,105 @@ public struct MemoryDetailView: View {
         let processes = (sampling.latestProcesses?.value ?? []).sorted { ($0.residentMemoryBytes ?? 0) > ($1.residentMemoryBytes ?? 0) }
         let topMemProcesses = Array(processes.prefix(6))
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "memorychip")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.blue)
-                            Text("Memory — Mach Virtual Memory & Pressure")
-                                .font(.system(size: 22, weight: .bold))
+        DetailPage {
+            DetailHeader(
+                icon: "memorychip",
+                tint: .blue,
+                title: "Memory",
+                subtitle: "\(mem?.formattedUsed ?? "—") used of \(mem?.formattedTotal ?? env.deviceProfile.formattedMemory) • \(mem?.formattedFree ?? "—") available",
+                metric: String(format: "%.0f%%", mem?.usagePercentage ?? 0.0),
+                metricLabel: "Memory in use"
+            )
+
+            SectionCard("Memory Load History", icon: "waveform.path.ecg", tint: .blue, accessory: {
+                PillTag("60s", tint: .blue)
+            }) {
+                MemoryTimeSeriesChart(
+                    dataPoints: sampling.memoryHistory.values.isEmpty ? [0, 0] : sampling.memoryHistory.values
+                )
+                .frame(height: layoutClass == .compact ? 140 : 200)
+                ChartTimeAxis(tint: .blue)
+            }
+
+            if let m = mem {
+                SectionCard("Physical Memory Composition", icon: "chart.bar.xaxis", tint: .blue, accessory: {
+                    pressureBadge(m.pressureLevel)
+                }) {
+                    GeometryReader { geo in
+                        let total = Double(m.totalBytes > 0 ? m.totalBytes : 1)
+                        let usable = max(0, geo.size.width - 6)
+                        let wiredW = CGFloat(Double(m.wiredBytes) / total) * usable
+                        let activeW = CGFloat(Double(m.activeBytes) / total) * usable
+                        let compressedW = CGFloat(Double(m.compressedBytes) / total) * usable
+                        let freeW = max(0, usable - wiredW - activeW - compressedW)
+
+                        HStack(spacing: 2) {
+                            Rectangle().fill(Color.purple).frame(width: max(2, wiredW))
+                            Rectangle().fill(Color.blue).frame(width: max(2, activeW))
+                            Rectangle().fill(Color.amber).frame(width: max(2, compressedW))
+                            Rectangle().fill(Color.emerald.opacity(0.7)).frame(width: max(2, freeW))
                         }
-                        Text("\(mem?.formattedUsed ?? "—") used of \(mem?.formattedTotal ?? env.deviceProfile.formattedMemory) (\(mem?.formattedFree ?? "—") available)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        .clipShape(Capsule())
                     }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(String(format: "%.0f%%", mem?.usagePercentage ?? 0.0))
-                            .font(.system(size: 28, weight: .bold, design: .monospaced))
-                            .foregroundColor(.blue)
-                        Text("MEMORY FOOTPRINT")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
+                    .frame(height: 12)
 
-                // 60-Second Real-Time Memory Utilization Chart
-                CardView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("60-Second Memory Load History")
-                                .font(.system(size: 13, weight: .semibold))
-                            Spacer()
-                            Text("100%")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(.secondary)
-                        }
-
-                        MemoryTimeSeriesChart(
-                            dataPoints: sampling.memoryHistory.values.isEmpty ? [0, 0] : sampling.memoryHistory.values
-                        )
-
-                        HStack {
-                            Text("60s ago")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("0s (Live)")
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(.blue)
-                        }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12, alignment: .leading)], alignment: .leading, spacing: 6) {
+                        legendItem(color: .purple, label: "Wired", val: m.formattedWired)
+                        legendItem(color: .blue, label: "Active", val: m.formattedActive)
+                        legendItem(color: .amber, label: "Compressed", val: m.formattedCompressed)
+                        legendItem(color: .emerald, label: "Free", val: m.formattedFree)
                     }
                 }
-                .padding(.horizontal, 24)
+            }
 
-                // Stacked Mach Memory Breakdown Bar
-                if let m = mem {
-                    CardView {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("Physical Memory Composition")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Spacer()
-                                pressureBadge(m.pressureLevel)
-                            }
-
-                            // Stacked Bar
-                            GeometryReader { geo in
-                                let total = Double(m.totalBytes > 0 ? m.totalBytes : 1)
-                                let wiredW = CGFloat(Double(m.wiredBytes) / total) * geo.size.width
-                                let activeW = CGFloat(Double(m.activeBytes) / total) * geo.size.width
-                                let compressedW = CGFloat(Double(m.compressedBytes) / total) * geo.size.width
-                                let freeW = max(0, geo.size.width - wiredW - activeW - compressedW)
-
-                                HStack(spacing: 2) {
-                                    Rectangle().fill(Color.purple).frame(width: max(2, wiredW))
-                                    Rectangle().fill(Color.blue).frame(width: max(2, activeW))
-                                    Rectangle().fill(Color.amber).frame(width: max(2, compressedW))
-                                    Rectangle().fill(Color.emerald).frame(width: max(2, freeW))
-                                }
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-                            .frame(height: 14)
-
-                            // Legend
-                            HStack(spacing: 16) {
-                                legendItem(color: .purple, label: "Wired", val: m.formattedWired)
-                                legendItem(color: .blue, label: "Active", val: m.formattedActive)
-                                legendItem(color: .amber, label: "Compressed", val: m.formattedCompressed)
-                                legendItem(color: .emerald, label: "Free", val: m.formattedFree)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                }
-
-                // Mach VM Metrics Grid
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                    CardView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Mach VM Paging & Pressure")
-                                .font(.system(size: 13, weight: .semibold))
-
-                            VStack(spacing: 8) {
-                                specRow(label: "Memory Pressure", value: mem?.pressureLevel.capitalized ?? "Normal")
-                                specRow(label: "Mach Page Size", value: "16 KB (Apple Silicon VM)")
-                                specRow(label: "Active Memory", value: mem?.formattedActive ?? "—")
-                                specRow(label: "Wired (Pinned)", value: mem?.formattedWired ?? "—")
-                            }
-                        }
-                    }
-
-                    CardView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Memory Pools & Allocation")
-                                .font(.system(size: 13, weight: .semibold))
-
-                            VStack(spacing: 8) {
-                                specRow(label: "Total Physical RAM", value: mem?.formattedTotal ?? env.deviceProfile.formattedMemory)
-                                specRow(label: "Compressed RAM", value: mem?.formattedCompressed ?? "—")
-                                specRow(label: "Inactive / Cached", value: mem?.formattedInactive ?? "—")
-                                specRow(label: "Available Free", value: mem?.formattedFree ?? "—")
-                            }
-                        }
+            AdaptiveGrid(minimum: 300) {
+                SectionCard("Paging & Pressure", icon: "gauge.medium", tint: .blue) {
+                    VStack(spacing: 8) {
+                        SpecRow("Memory Pressure", mem?.pressureLevel.capitalized ?? "Normal")
+                        SpecRow("Page Size", "16 KB")
+                        SpecRow("Active Memory", mem?.formattedActive ?? "—")
+                        SpecRow("Wired (Pinned)", mem?.formattedWired ?? "—")
                     }
                 }
-                .padding(.horizontal, 24)
 
-                // Top Memory Consuming Processes
-                CardView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Top Memory Consumers (Resident Footprint)")
-                                .font(.system(size: 13, weight: .semibold))
-                            Spacer()
-                            Text("Real-Time Sample")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-
-                        VStack(spacing: 6) {
-                            HStack {
-                                Text("PID")
-                                    .frame(width: 50, alignment: .leading)
-                                Text("Process Name")
-                                    .frame(minWidth: 150, alignment: .leading)
-                                Spacer()
-                                Text("Architecture")
-                                    .frame(width: 90, alignment: .trailing)
-                                Text("RAM Footprint")
-                                    .frame(width: 90, alignment: .trailing)
-                            }
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.secondary)
-
-                            Divider()
-
-                            ForEach(topMemProcesses) { proc in
-                                HStack {
-                                    Text("\(proc.pid)")
-                                        .font(.system(size: 11, design: .monospaced))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 50, alignment: .leading)
-
-                                    HStack(spacing: 6) {
-                                        Image(systemName: proc.isActive ? "app.fill" : "gearshape.2")
-                                            .font(.system(size: 10))
-                                            .foregroundColor(proc.isActive ? .blue : .secondary)
-                                        Text(proc.name)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .lineLimit(1)
-                                    }
-                                    .frame(minWidth: 150, alignment: .leading)
-
-                                    Spacer()
-
-                                    Text(proc.architecture)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 90, alignment: .trailing)
-
-                                    Text(proc.formattedMemory)
-                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                        .foregroundColor(.blue)
-                                        .frame(width: 90, alignment: .trailing)
-                                }
-                                .padding(.vertical, 2)
-                            }
-                        }
+                SectionCard("Pools & Allocation", icon: "square.stack", tint: .blue) {
+                    VStack(spacing: 8) {
+                        SpecRow("Total Physical RAM", mem?.formattedTotal ?? env.deviceProfile.formattedMemory)
+                        SpecRow("Compressed", mem?.formattedCompressed ?? "—")
+                        SpecRow("Inactive / Cached", mem?.formattedInactive ?? "—")
+                        SpecRow("Available", mem?.formattedFree ?? "—")
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
+            }
+
+            SectionCard("Top Memory Consumers", icon: "list.number", tint: .blue, accessory: {
+                PillTag("LIVE", tint: .emerald)
+            }) {
+                TopProcessTable(
+                    rows: topMemProcesses.map {
+                        .init(id: $0.pid, name: $0.name, architecture: $0.architecture, isActive: $0.isActive, value: $0.formattedMemory)
+                    },
+                    valueTitle: "Memory",
+                    tint: .blue
+                )
             }
         }
     }
 
     private func pressureBadge(_ status: String) -> some View {
         let color: Color = status.lowercased() == "critical" ? .rose : (status.lowercased() == "warn" ? .amber : .emerald)
-        return Text(status.uppercased())
-            .font(.system(size: 10, weight: .bold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.12))
-            .foregroundColor(color)
-            .clipShape(Capsule())
+        return PillTag(status.uppercased(), tint: color)
     }
 
     private func legendItem(color: Color, label: String, val: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             Circle().fill(color).frame(width: 8, height: 8)
-            Text("\(label):")
-                .font(.system(size: 10, weight: .medium))
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
             Text(val)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
         }
-    }
-
-    private func specRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-                .frame(width: 140, alignment: .leading)
-            Spacer()
-            Text(value)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-        }
+        .lineLimit(1)
     }
 }

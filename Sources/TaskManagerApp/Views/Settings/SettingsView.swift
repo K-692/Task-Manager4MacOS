@@ -1,8 +1,7 @@
 import SwiftUI
 import TaskManagerCore
 
-/// Settings view: compact, technical, non-scrollable configuration panel
-/// fitting perfectly within the standard window viewport.
+/// Settings view: responsive, scrollable configuration panel.
 public struct SettingsView: View {
     @EnvironmentObject private var env: AppEnvironment
     @State private var updateSpeed: Double = 1.0
@@ -10,199 +9,124 @@ public struct SettingsView: View {
     public init() {}
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header (clean, compact clearance)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Settings")
-                    .font(.system(size: 18, weight: .bold))
-                Text("Runtime preferences, macOS menu bar widget customization, and telemetry cadence.")
+        DetailPage {
+            DetailHeader(
+                icon: "gearshape.fill",
+                tint: .slate,
+                title: "Settings",
+                subtitle: "Menu bar widget, background behavior, telemetry cadence and appearance."
+            )
+
+            // 1. Menu Bar Widget
+            SectionCard("Menu Bar Widget", icon: "menubar.rectangle", tint: .indigo, accessory: {
+                PillTag("ALWAYS ON", tint: .emerald)
+            }) {
+                Text("Choose the metric shown next to the Task Manager icon in the macOS menu bar.")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            // 1. macOS Menu Bar Widget & Background
-            CardView(padding: 10) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("macOS Menu Bar Widget & Background")
-                            .font(.system(size: 12, weight: .bold))
-                        Spacer()
-                        Text("Single Active Icon")
-                            .font(.system(size: 9, weight: .bold))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(Color.emerald.opacity(0.12))
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+                    menuBarRadioChip(metric: .cpu, color: .indigo,
+                                     currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestCPU?.value?.totalUsagePercent ?? 0))
+                    menuBarRadioChip(metric: .gpu, color: .purple,
+                                     currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestGPU?.value?.utilizationPercent ?? 0))
+                    menuBarRadioChip(metric: .memory, color: .blue,
+                                     currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestMemory?.value?.usagePercentage ?? 0))
+                    menuBarRadioChip(metric: .disk, color: .emerald,
+                                     currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestStorage?.value?.first?.usagePercentage ?? 0))
+                    menuBarRadioChip(metric: .network, color: .cyan,
+                                     currentVal: formatCompactRate((env.samplingCoordinator.latestNetwork?.value?.totalBytesInPerSecond ?? 0) + (env.samplingCoordinator.latestNetwork?.value?.totalBytesOutPerSecond ?? 0)))
+                }
+
+                HStack(spacing: 8) {
+                    Text("Preview")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: env.selectedMenuBarMetric.icon)
+                            .font(.system(size: 10, weight: .bold))
+                        Text(valueForMetric(env.selectedMenuBarMetric))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.primary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+
+                    Spacer(minLength: 0)
+                }
+            }
+
+            // 2. Background behavior
+            SectionCard("Background & Startup", icon: "power", tint: .emerald) {
+                VStack(spacing: 12) {
+                    settingRow(
+                        title: "Stay running in the menu bar",
+                        detail: "Closing the window never quits Task Manager. It keeps monitoring from the menu bar until you choose Quit (⌘Q)."
+                    ) {
+                        Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(.emerald)
-                            .clipShape(Capsule())
-                    }
-
-                    // Single-Selection Radio Chips (CPU / GPU / Memory / Disk / Network)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Select the hardware component displayed on the macOS top menu bar (single selection):")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 6) {
-                            menuBarRadioChip(
-                                metric: .cpu,
-                                color: .indigo,
-                                currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestCPU?.value?.totalUsagePercent ?? 0)
-                            )
-
-                            menuBarRadioChip(
-                                metric: .gpu,
-                                color: .purple,
-                                currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestGPU?.value?.utilizationPercent ?? 0)
-                            )
-
-                            menuBarRadioChip(
-                                metric: .memory,
-                                color: .blue,
-                                currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestMemory?.value?.usagePercentage ?? 0)
-                            )
-
-                            menuBarRadioChip(
-                                metric: .disk,
-                                color: .emerald,
-                                currentVal: String(format: "%.0f%%", env.samplingCoordinator.latestStorage?.value?.first?.usagePercentage ?? 0)
-                            )
-
-                            menuBarRadioChip(
-                                metric: .network,
-                                color: .cyan,
-                                currentVal: formatCompactRate((env.samplingCoordinator.latestNetwork?.value?.totalBytesInPerSecond ?? 0) + (env.samplingCoordinator.latestNetwork?.value?.totalBytesOutPerSecond ?? 0))
-                            )
-                        }
-
-                        // Live Menu Bar Preview Ribbon
-                        HStack(spacing: 6) {
-                            Text("Menu Bar Preview:")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.secondary)
-
-                            HStack(spacing: 4) {
-                                Image(systemName: env.selectedMenuBarMetric.icon)
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(colorForMetric(env.selectedMenuBarMetric))
-                                Text(valueForMetric(env.selectedMenuBarMetric))
-                                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(Color.primary.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-
-                            Spacer()
-
-                            Button("Reset to CPU") {
-                                env.selectedMenuBarMetric = .cpu
-                            }
-                            .font(.system(size: 9))
-                            .buttonStyle(.plain)
-                            .foregroundColor(.secondary)
-                        }
-                        .padding(.top, 1)
+                            .help("Always enabled")
                     }
 
                     Divider()
 
-                    // Behavior Toggles (Tight)
-                    VStack(spacing: 6) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("Keep in Menu Bar")
-                                    .font(.system(size: 11, weight: .medium))
-                                Text("Closing the main window leaves live metrics active in the macOS menu bar.")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Toggle("", isOn: $env.keepInMenuBar)
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                                .labelsHidden()
-                                .onChange(of: env.keepInMenuBar) { val in
-                                    try? env.settingsRepo.setBool(key: "keep_in_menu_bar", value: val)
-                                }
-                        }
-
-                        HStack {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("Launch at Login (SMAppService)")
-                                    .font(.system(size: 11, weight: .medium))
-                                Text("Start Task Manager automatically on macOS boot without background daemons.")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Toggle("", isOn: $env.launchAtLogin)
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                                .labelsHidden()
-                                .onChange(of: env.launchAtLogin) { val in
-                                    try? env.loginItemService.setLaunchAtLogin(enabled: val)
-                                }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 18)
-
-            // 2. Telemetry & Sample Rate
-            CardView(padding: 10) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .center) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Telemetry & Sample Rate")
-                                .font(.system(size: 12, weight: .bold))
-                            Text("Real-time refresh rate for CPU, GPU, Memory, Disk, and Network hardware monitors.")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        // Custom unclipped segmented pill selector
-                        HStack(spacing: 2) {
-                            cadenceButton(label: "0.5s", tag: "Fast", interval: 0.5)
-                            cadenceButton(label: "1.0s", tag: "Normal", interval: 1.0)
-                            cadenceButton(label: "3.0s", tag: "Eco", interval: 3.0)
-                            cadenceButton(label: "Pause", tag: "0.0s", interval: 0.0)
-                        }
-                        .padding(2)
-                        .background(Color.primary.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    settingRow(
+                        title: "Hide Dock icon when window is closed",
+                        detail: "Run as a pure menu bar utility while the main window is closed."
+                    ) {
+                        Toggle("", isOn: $env.hideDockIconWhenClosed)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
                     }
 
                     Divider()
 
-                    HStack(spacing: 6) {
-                        Image(systemName: "memorychip")
-                            .foregroundColor(.indigo)
-                            .font(.system(size: 10))
-                        Text("Telemetry is retained strictly in volatile 60-sample in-memory ring buffers with zero disk writes.")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("Active: \(formattedInterval(updateSpeed))")
-                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.secondary)
+                    settingRow(
+                        title: "Launch at login",
+                        detail: "Start Task Manager automatically so the menu bar widget is always available."
+                    ) {
+                        Toggle("", isOn: $env.launchAtLogin)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
+                            .onChange(of: env.launchAtLogin) { val in
+                                try? env.loginItemService.setLaunchAtLogin(enabled: val)
+                            }
                     }
                 }
             }
-            .padding(.horizontal, 18)
 
-            // 3. Visual Theme
-            CardView(padding: 10) {
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Visual Theme")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("Choose between dark mode, light mode, or matching macOS system appearance.")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
+            // 3. Telemetry cadence + 4. Theme side by side when there is room
+            AdaptiveGrid(minimum: 320) {
+                SectionCard("Sample Rate", icon: "timer", tint: .amber, accessory: {
+                    Text(formattedInterval(updateSpeed))
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }) {
+                    Text("Refresh rate for CPU, GPU, memory, disk and network monitors.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 2) {
+                        cadenceButton(label: "0.5s", tag: "Fast", interval: 0.5)
+                        cadenceButton(label: "1s", tag: "Normal", interval: 1.0)
+                        cadenceButton(label: "3s", tag: "Eco", interval: 3.0)
+                        cadenceButton(label: "Pause", tag: "", interval: 0.0)
                     }
-                    Spacer()
+                    .padding(2)
+                    .background(Color.primary.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                }
+
+                SectionCard("Appearance", icon: "paintpalette", tint: .purple) {
+                    Text("Match macOS or force light or dark mode.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 2) {
                         themeButton(label: "System", icon: "circle.lefthalf.filled", mode: "system")
                         themeButton(label: "Light", icon: "sun.max.fill", mode: "light")
@@ -210,57 +134,79 @@ public struct SettingsView: View {
                     }
                     .padding(2)
                     .background(Color.primary.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
                 }
             }
-            .padding(.horizontal, 18)
 
-            // 4. About & Technical Hardware Specs (Compact 2-Column Grid)
-            CardView(padding: 10) {
-                VStack(alignment: .leading, spacing: 6) {
+            // 5. About
+            CardView {
+                VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 10) {
                         AppLogoView()
-                            .frame(width: 28, height: 28)
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            .frame(width: 34, height: 34)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                             .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
 
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Task Manager for macOS")
                                 .font(.system(size: 13, weight: .bold))
-                            Text("Version 1.0 (Build 1) • Native Swift & Metal Engine • MIT License")
-                                .font(.system(size: 9))
+                            Text("Version \(appVersion) • Native Swift • MIT License")
+                                .font(.system(size: 10))
                                 .foregroundColor(.secondary)
+                                .lineLimit(1)
                         }
-                        Spacer()
-                        Text("100% Offline")
-                            .font(.system(size: 9, weight: .bold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.emerald.opacity(0.12))
-                            .foregroundColor(.emerald)
-                            .clipShape(Capsule())
+                        .layoutPriority(1)
+                        Spacer(minLength: 4)
+                        PillTag("100% OFFLINE", tint: .emerald)
                     }
 
                     Divider()
 
-                    // Aligned Technical Specifications (2-Column Grid: 3 rows)
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 4) {
-                        specItem(label: "Device Model", value: env.deviceProfile.marketingName)
-                        specItem(label: "Architecture", value: "\(env.deviceProfile.architecture) (Unified)")
-                        specItem(label: "Processor", value: "\(env.deviceProfile.cpuName) (\(env.deviceProfile.physicalCores)C)")
-                        specItem(label: "Installed RAM", value: env.deviceProfile.formattedMemory)
-                        specItem(label: "Graphics (GPU)", value: env.deviceProfile.gpuNames.first ?? "Apple Silicon GPU (Metal 3)")
-                        specItem(label: "Operating System", value: "macOS \(env.deviceProfile.osVersion) (\(env.deviceProfile.osBuild))")
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16, alignment: .top)], alignment: .leading, spacing: 6) {
+                        SpecRow("Device Model", env.deviceProfile.marketingName)
+                        SpecRow("Architecture", env.deviceProfile.architecture)
+                        SpecRow("Processor", "\(env.deviceProfile.cpuName) (\(env.deviceProfile.physicalCores)C)")
+                        SpecRow("Installed RAM", env.deviceProfile.formattedMemory)
+                        SpecRow("Graphics", env.deviceProfile.gpuNames.first ?? "Apple Silicon GPU")
+                        SpecRow("macOS", env.deviceProfile.osVersion.replacingOccurrences(of: "Version ", with: ""))
                     }
                 }
             }
-            .padding(.horizontal, 18)
 
-            Spacer(minLength: 0)
+            HStack {
+                Spacer()
+                Button(role: .destructive) {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Label("Quit Task Manager", systemImage: "power")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             updateSpeed = env.samplingCoordinator.samplingInterval
+        }
+    }
+
+    private var appVersion: String {
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2"
+        return "\(short) (\(build))"
+    }
+
+    private func settingRow<Accessory: View>(title: String, detail: String, @ViewBuilder accessory: () -> Accessory) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                Text(detail)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            accessory()
         }
     }
 
@@ -314,18 +260,23 @@ public struct SettingsView: View {
             updateSpeed = interval
             env.samplingCoordinator.samplingInterval = interval
         }) {
-            HStack(spacing: 3) {
+            VStack(spacing: 0) {
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
                     .foregroundColor(isSelected ? .primary : .secondary)
-                Text(tag)
-                    .font(.system(size: 8))
-                    .foregroundColor(isSelected ? .indigo : .secondary.opacity(0.7))
+                if !tag.isEmpty {
+                    Text(tag)
+                        .font(.system(size: 8))
+                        .foregroundColor(isSelected ? .indigo : .secondary.opacity(0.7))
+                }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, minHeight: 28)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
             .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 5))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -345,10 +296,12 @@ public struct SettingsView: View {
                     .font(.system(size: 10, weight: isSelected ? .bold : .medium))
                     .foregroundColor(isSelected ? .primary : .secondary)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 4)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, minHeight: 28)
+            .padding(.horizontal, 4)
             .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 5))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

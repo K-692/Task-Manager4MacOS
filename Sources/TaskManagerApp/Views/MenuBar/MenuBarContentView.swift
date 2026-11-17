@@ -15,134 +15,178 @@ public struct MenuBarContentView: View {
         let mem = sampling.latestMemory?.value
         let gpu = sampling.latestGPU?.value
         let net = sampling.latestNetwork?.value
+        let disk = sampling.latestStorage?.value?.first
         let battery = sampling.latestBattery?.value
+        let topProcesses = Array((sampling.latestProcesses?.value ?? []).sorted { $0.cpuPercent > $1.cpuPercent }.prefix(3))
+        let netHistory = sampling.networkTotalHistory.values
 
         VStack(alignment: .leading, spacing: 12) {
-            // Header with App Name and Quick Status
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "cpu")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.indigo)
+            // Header
+            HStack(spacing: 10) {
+                AppLogoView()
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                VStack(alignment: .leading, spacing: 0) {
                     Text("Task Manager")
-                        .font(.headline)
+                        .font(.system(size: 13, weight: .bold))
+                    Text(env.deviceProfile.marketingName)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
                 Spacer()
-                Text(env.deviceProfile.marketingName)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                PillTag("LIVE", tint: .emerald)
             }
 
-            Divider()
+            // Metric rows
+            VStack(spacing: 6) {
+                metricRow(icon: "cpu", title: "CPU", tint: .indigo,
+                          value: String(format: "%.0f%%", cpu?.totalUsagePercent ?? 0),
+                          history: sampling.cpuHistory.values, maxVal: 100,
+                          destination: .cpu)
+                metricRow(icon: "cube.transparent", title: "GPU", tint: .purple,
+                          value: String(format: "%.0f%%", gpu?.utilizationPercent ?? 0),
+                          history: sampling.gpuHistory.values, maxVal: 100,
+                          destination: .gpu)
+                metricRow(icon: "memorychip", title: "Memory", tint: .blue,
+                          value: String(format: "%.0f%%", mem?.usagePercentage ?? 0),
+                          detail: mem?.formattedUsed,
+                          history: sampling.memoryHistory.values, maxVal: 100,
+                          destination: .memory)
+                metricRow(icon: "internaldrive", title: "Disk", tint: .emerald,
+                          value: String(format: "%.0f%%", disk?.usagePercentage ?? 0),
+                          detail: disk.map { "\($0.formattedAvailable) free" },
+                          history: sampling.diskHistory.values, maxVal: 100,
+                          destination: .disk)
+                metricRow(icon: "network", title: "Network", tint: .cyan,
+                          value: net?.formattedInPerSecond ?? "0 B/s",
+                          detail: net.map { "↑ \($0.formattedOutPerSecond)" },
+                          history: netHistory, maxVal: max(1024, netHistory.max() ?? 1024),
+                          destination: .network)
 
-            // Hardware Telemetry Rows (Strict Order: CPU -> GPU -> Memory -> Disk -> Network)
-            VStack(spacing: 8) {
-                // 1. CPU Row
-                HStack {
-                    Label("CPU", systemImage: "cpu")
-                        .font(.caption)
-                        .foregroundColor(.indigo)
-                        .frame(width: 80, alignment: .leading)
-                    Spacer()
-                    Text(String(format: "%.1f%%", cpu?.totalUsagePercent ?? 0.0))
-                        .font(.caption.monospaced())
-                        .bold()
-                }
-
-                // 2. GPU Row (Immediately after CPU)
-                HStack {
-                    Label("GPU", systemImage: "display.trianglebadge.exclamationmark")
-                        .font(.caption)
-                        .foregroundColor(.purple)
-                        .frame(width: 80, alignment: .leading)
-                    Spacer()
-                    Text(String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0))
-                        .font(.caption.monospaced())
-                        .bold()
-                }
-
-                // 3. Memory Row
-                HStack {
-                    Label("Memory", systemImage: "memorychip")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                        .frame(width: 80, alignment: .leading)
-                    Spacer()
-                    Text("\(mem?.formattedUsed ?? "0 GB") (\(String(format: "%.0f%%", mem?.usagePercentage ?? 0.0)))")
-                        .font(.caption.monospaced())
-                }
-
-                // 4. Disk Row
-                if let disk = sampling.latestStorage?.value?.first {
-                    HStack {
-                        Label("Disk", systemImage: "internaldrive")
-                            .font(.caption)
-                            .foregroundColor(.emerald)
-                            .frame(width: 80, alignment: .leading)
+                if let bat = battery {
+                    HStack(spacing: 8) {
+                        Image(systemName: bat.isCharging ? "battery.100.bolt" : "battery.75")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(bat.chargePercent > 20 ? .emerald : .rose)
+                            .frame(width: 18)
+                        Text("Battery")
+                            .font(.system(size: 12, weight: .medium))
                         Spacer()
-                        Text("\(disk.formattedAvailable) free (\(String(format: "%.0f%%", disk.usagePercentage)))")
-                            .font(.caption.monospaced())
-                    }
-                }
-
-                // 5. Network Row
-                if let n = net {
-                    HStack {
-                        Label("Network", systemImage: "network")
-                            .font(.caption)
-                            .foregroundColor(.cyan)
-                            .frame(width: 80, alignment: .leading)
-                        Spacer()
-                        Text("↓ \(n.formattedInPerSecond)  ↑ \(n.formattedOutPerSecond)")
-                            .font(.caption2.monospaced())
+                        Text("\(bat.chargePercent)%\(bat.isCharging ? " • Charging" : "")")
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                 }
+            }
 
-                // Battery Row (if present)
-                if let bat = battery {
-                    HStack {
-                        Label("Battery", systemImage: bat.isCharging ? "battery.100.bolt" : "battery.100")
-                            .font(.caption)
-                            .foregroundColor(bat.chargePercent > 20 ? .emerald : .rose)
-                            .frame(width: 80, alignment: .leading)
-                        Spacer()
-                        Text("\(bat.chargePercent)% \(bat.isCharging ? "(Charging)" : "")")
-                            .font(.caption.monospaced())
+            if !topProcesses.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("TOP PROCESSES")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundColor(.secondary)
+                    ForEach(topProcesses) { proc in
+                        HStack {
+                            Text(proc.name)
+                                .font(.system(size: 11))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            Text(String(format: "%.1f%%", proc.cpuPercent))
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.indigo)
+                        }
                     }
                 }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.04)))
             }
 
             Divider()
 
             // Actions
-            HStack {
-                Button("Open Task Manager") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    var windowFound = false
-                    for window in NSApp.windows where window.canBecomeMain {
-                        window.makeKeyAndOrderFront(nil)
-                        windowFound = true
-                    }
-                    if !windowFound, let url = URL(string: "taskmanager://dashboard") {
-                        NSWorkspace.shared.open(url)
-                    }
+            HStack(spacing: 8) {
+                Button {
+                    open(.dashboard)
+                } label: {
+                    Label("Open Dashboard", systemImage: "macwindow")
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .controlSize(.regular)
 
-                Spacer()
-
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
+                Button {
+                    open(.settings)
+                } label: {
+                    Image(systemName: "gearshape")
                 }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundColor(.rose)
+                .buttonStyle(.bordered)
+                .help("Settings")
+
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "power")
+                }
+                .buttonStyle(.bordered)
+                .tint(.rose)
+                .help("Quit Task Manager (⌘Q)")
+                .keyboardShortcut("q", modifiers: .command)
             }
         }
         .padding(14)
-        .frame(width: 280)
+        .frame(width: 310)
+    }
+
+    private func open(_ destination: AppDestination) {
+        env.selectedDestination = destination
+        WindowRouter.shared.showMainWindow()
+    }
+
+    private func metricRow(
+        icon: String,
+        title: String,
+        tint: Color,
+        value: String,
+        detail: String? = nil,
+        history: [Double],
+        maxVal: Double,
+        destination: AppDestination
+    ) -> some View {
+        Button {
+            open(destination)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(tint)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(.system(size: 12, weight: .medium))
+                    if let detail {
+                        Text(detail)
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 6)
+                SparklineView(data: history, minVal: 0, maxVal: maxVal, tint: tint)
+                Text(value)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .frame(width: 70, alignment: .trailing)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tint.opacity(0.06)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

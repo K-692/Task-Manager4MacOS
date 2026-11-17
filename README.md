@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.0.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.0.0-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.1.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.1.0-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -15,7 +15,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <p align="center">
-  <strong>A high-performance, featherlight, Windows Task Manager inspired software and hardware monitor for macOS. Live multi-engine GPU metrics, non-scrollable command-center dashboard, Mach CPU loads, memory pressure graphs, dedicated hardware deep-dive tabs, per-process telemetry with instant "End Task", live menu bar status, and startup app control.</strong>
+  <strong>A high-performance, featherlight, Windows Task Manager inspired software and hardware monitor for macOS. An always-on menu bar monitor, a fully responsive window that adapts from a full-screen command center down to a compact 460-pt panel, live multi-engine GPU metrics, Mach CPU loads, memory pressure graphs, dedicated hardware deep-dive tabs, per-process telemetry with instant "End Task", live menu bar status, and startup app control.</strong>
 </p>
 
 [Download DMG](#-download--installation) •
@@ -38,62 +38,91 @@
 ### Why Task Manager for macOS?
 - **Zero Web Runtimes:** 100% native Swift, SwiftUI, AppKit, Metal, and Darwin Mach kernel APIs. No Electron, Node.js, Chromium, or web servers.
 - **Featherlight Overhead:** Idles with `< 0.4%` CPU usage and `~25MB` memory footprint.
-- **Non-Scrollable Single-Window Dashboard:** All 5 core performance graphs (CPU, GPU, Memory, Disk, Network) fit into one responsive viewport with zero vertical scrolling.
+- **Always-On Menu Bar Utility:** Closing the window never quits the app. Task Manager keeps monitoring from the menu bar (and drops its Dock icon) until you explicitly choose **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>). It registers as a login item on first launch so it is there after every restart.
+- **Fully Responsive Window:** Every screen adapts as the window shrinks: the sidebar auto-collapses, cards reflow from multi-column grids into a single column, tables hide lower-priority columns, and headers wrap. Nothing clips or overlaps from a full-screen window down to ~460 pt wide.
+- **Command-Center Dashboard:** On large windows all 5 core performance graphs (CPU, GPU, Memory, Disk, Network) fill one viewport with zero scrolling; on smaller windows they become a scrollable card grid.
 - **Dedicated Hardware Diagnostic Tabs:** Clicking any component in the sidebar opens an in-depth diagnostic tab exclusively detailing that component's microarchitecture, pipelines, and top processes.
 - **Live Sidebar Sparklines:** Real-time mini-graphs rendered directly in the sidebar navigation in strict order: **CPU $\rightarrow$ GPU $\rightarrow$ Memory $\rightarrow$ Disk $\rightarrow$ Network**.
 - **Real-Time 1-Second Mac Menu Bar Ticker:** The native macOS menu bar status extra streams live telemetry (CPU, GPU, Memory, Disk, or Network) every second in real time.
 - **True GPU Visualization:** Real-time GPU load percentage, renderer utilization, tiler utilization, and allocated/in-use VRAM directly from Apple Silicon & discrete GPUs.
 - **Memory-First Process Sorting:** Processes default-sorted by physical resident memory footprint for instant leak detection, with instant "End Task" process control.
 - **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear. No SQLite metric rollups $>60$ seconds.
-- **Single-Tab Non-Scrollable Settings:** Cleanly aligned, compact configuration options in one unified, non-scrollable panel fitting neatly within the window viewport.
+- **Refreshed Design (v1.1):** Gradient icon badges, layered cards, smooth monotone charts with consistent per-component colors, and a redesigned menu bar popover with sparklines and top processes.
 
 ---
 
 ## 📸 Application Screenshots
 
-### 1. Performance Dashboard & Real-Time macOS Menu Bar
+### 1. Performance Dashboard
 <p align="center">
-  <img src="App_Screenshots/Dashboard&Menubar.png" alt="Performance Dashboard and macOS Menu Bar" width="100%" />
+  <img src="App_Screenshots/Dashboard.png" alt="Performance Dashboard" width="100%" />
 </p>
 
-*The non-scrollable Performance Dashboard delivers a unified command-center landing page featuring 60-second real-time charts for CPU, GPU, Memory, Disk, and Network, accompanied by live navigation sidebar sparklines and continuous macOS status bar telemetry.*
+*The Performance Dashboard is a command center with 60-second live charts for CPU, GPU, Memory, Disk and Network, a live stat ticker, and sidebar sparklines. Click any card to open that component's detail page.*
 
 ---
 
-### 2. Dedicated Hardware Diagnostics (CPU Microarchitecture)
+### 2. Always-On Menu Bar Monitor
 <p align="center">
-  <img src="App_Screenshots/CPU.png" alt="Dedicated CPU Architecture & Diagnostics View" width="100%" />
+  <img src="App_Screenshots/Menubar.png" alt="Menu bar popover" width="360" />
 </p>
 
-*Dedicated hardware diagnostic views provide in-depth microarchitectural telemetry, core execution distributions, and top resource-consuming processes for each isolated hardware subsystem.*
+*The menu bar item streams your chosen metric every second. Its popover shows sparklines for every component, battery status, and the top processes, plus one-click access to the dashboard, Settings, or Quit. It stays running after the window is closed.*
 
 ---
 
-### 3. Software & Process Management ("Processes" Tab)
+### 3. Responsive Layout (Narrow Window)
 <p align="center">
-  <img src="App_Screenshots/Processes.png" alt="Processes Inventory and End Task" width="100%" />
+  <img src="App_Screenshots/Responsive.png" alt="Responsive narrow window layouts" width="80%" />
 </p>
 
-*The Processes view provides a real-time inventory of all active macOS applications and background tasks default-sorted by memory footprint with instant "End Task" termination.*
+*Shrink the window and everything adapts: the sidebar collapses, the dashboard turns into a scrollable single-column card stack, stat pills wrap, and detail pages reflow their grids and tables.*
 
 ---
 
-### 4. Non-Scrollable Settings & Menu Bar Widget Customization
+### 4. CPU Diagnostics
 <p align="center">
-  <img src="App_Screenshots/Settings.png" alt="Non-Scrollable Settings and Menu Bar Customization" width="100%" />
+  <img src="App_Screenshots/CPU.png" alt="CPU detail view" width="100%" />
 </p>
 
-*The non-scrollable Settings panel offers single-selection macOS menu bar customization, configurable telemetry sampling cadences, visual themes, and complete offline hardware specifications.*
+*Each component has its own detail page, with a 60-second history, utilization breakdown bars, topology specs, and the top consuming processes.*
+
+---
+
+### 5. Memory Diagnostics
+<p align="center">
+  <img src="App_Screenshots/Memory.png" alt="Memory detail view" width="100%" />
+</p>
+
+*The Memory page shows the load history, a color-coded composition bar (wired, active, compressed, free), memory pressure, and the heaviest processes.*
+
+---
+
+### 6. Processes ("End Task")
+<p align="center">
+  <img src="App_Screenshots/Processes.png" alt="Processes view" width="100%" />
+</p>
+
+*A live inventory of every running process, sorted by memory by default. Click a column header to sort, filter by name, bundle ID or PID, and end or force-kill tasks. On narrow windows the PID, Architecture and Status columns hide automatically.*
+
+---
+
+### 7. Settings
+<p align="center">
+  <img src="App_Screenshots/Settings.png" alt="Settings view" width="100%" />
+</p>
+
+*Pick the menu bar metric, control Dock-icon hiding and launch at login, set the sampling rate and appearance, and view hardware specs.*
 
 ---
 
 ## ⚡ Key Features
 
-### 1. ⚡ Non-Scrollable Performance Dashboard (Landing Page)
-- **Single-Window Command Center:** Displays real-time 60-second interactive charts for all 5 hardware components in a clean 2-row grid fitting completely within the window viewport with zero vertical scrolling:
+### 1. ⚡ Responsive Performance Dashboard (Landing Page)
+- **Adaptive Command Center:** On windows ≥ 820×560 pt it shows real-time 60-second charts for all 5 hardware components in a 2-row grid that fills the window with no scrolling. Smaller windows switch to a scrollable adaptive card grid (2 columns, then 1):
   - **Row 1:** CPU Card (50% width) and GPU Card (50% width, immediately succeeding CPU).
   - **Row 2:** Memory Card (33% width), Disk Card (33% width), and Network Card (33% width).
-- **Thermal & Health Ticker:** Live thermal throttling status, system uptime counter, and active process count.
+- **Live Stat Ticker:** CPU, GPU, RAM, disk, network and process-count pills that wrap onto extra lines on narrow windows.
 - **Direct Component Navigation:** Clicking any dashboard card or "Details →" button navigates straight to that component's dedicated in-depth view.
 
 ### 2. 🔍 Dedicated Hardware Diagnostic Tabs
@@ -111,12 +140,14 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
   3. **Memory** — Live RAM usage % + Real-time sparkline graph
   4. **Disk** — Live primary disk usage % + Real-time sparkline graph
   5. **Network** — Live throughput rate + Real-time sparkline graph
-- Labels ("CPU", "GPU", "Memory", "Disk", "Network") have dedicated column widths ensuring zero text truncation.
+- The sidebar collapses automatically below ~680 pt of window width and comes back when the window grows (or toggle it manually).
 - Uses right-aligned fixed-time coordinate mapping with center reference lines and active indicator dots.
 
-### 4. 🍎 Real-Time 1-Second Mac Menu Bar Utility
+### 4. 🍎 Always-On Menu Bar Utility
+- **Never Quits on Close:** Closing the main window leaves Task Manager running in the menu bar. The Dock icon hides automatically while the window is closed (toggle in Settings) and returns when you reopen it from the menu bar, Spotlight, or Finder. Only **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>, or the power button in the popover) exits the app.
+- **Starts with your Mac:** Launch at login is enabled on first run so the widget is always available after a restart. You can turn it off in Settings.
 - **Live Status Bar Label:** The macOS top menu bar item displays user-selected real-time hardware telemetry updated continuously every 1 second (e.g. `[CPU icon] 18%` or `[GPU icon] 41%`).
-- **Popup Hardware Monitor:** Clicking the menu bar item opens a compact floating HUD displaying live CPU, GPU, Memory, Disk, Network, and Battery stats without opening the main window.
+- **Popup Hardware Monitor:** Clicking the menu bar item opens a compact HUD with live sparklines for CPU, GPU, Memory, Disk and Network, battery status and the top 3 processes. Click any row to jump to its detail page.
 - **Common Mode RunLoop:** Scheduling on `RunLoop.main` in `.common` mode guarantees uninterrupted 1-second updates during user mouse tracking and scrolling.
 
 ### 5. 🚀 Software & Process Management ("Processes" Tab)
@@ -132,13 +163,14 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - **VRAM / Unified Memory Tracking:** Real-time allocated system memory and active in-use VRAM.
 - **Metal Hardware Profile:** Dynamic device identification via Apple Metal (`MTLCopyAllDevices`).
 
-### 7. ⚙️ Non-Scrollable Settings & Single-Selection Menu Bar Widget
-- **100% Non-Scrollable Layout:** Entire settings panel fits comfortably inside the macOS window without vertical scrollbars.
+### 7. ⚙️ Settings & Single-Selection Menu Bar Widget
+- **Responsive Layout:** Cards sit side by side on wide windows and stack on narrow ones; the page scrolls only when it has to.
 - **Single-Selection Menu Bar Widget:** Select which hardware component (**CPU**, **GPU**, **Memory**, **Disk**, or **Network**) is visible on the macOS top status bar using single-selection radio chips, as only one icon and live telemetry metric can be displayed cleanly at a time.
-- **Live Menu Bar Preview Ribbon:** Immediate simulated preview of the active menu bar status item with a one-click "Reset to CPU" option.
+- **Live Menu Bar Preview:** Immediate preview of the active menu bar status item.
+- **Background & Startup:** Hide the Dock icon while the window is closed, and toggle launch at login.
 - **Telemetry & Sample Rate Control:** Custom segmented cadence pills (`0.5s Fast`, `1.0s Normal`, `3.0s Eco`, `Pause`) with active interval badge and explicit volatile in-memory ring buffer architecture (zero disk writes).
 - **Appearance & Theme:** System, Light, and Dark mode selectors with instant interface adaptation.
-- **Aligned 2-Column Hardware Specs:** Technical specifications (Device Model, Architecture, Processor, Installed RAM, Graphics GPU, OS Build) organized in a clean 2-column grid.
+- **Hardware Specs:** Device model, architecture, processor, installed RAM, graphics and macOS version in an adaptive grid.
 - **Desktop Widget Blueprint:** See [`Documentation/DesktopWidgetGuide.md`](Documentation/DesktopWidgetGuide.md) for full architectural patterns and Swift source code to add native macOS Sonoma/Sequoia Desktop Widgets.
 
 ---
@@ -149,24 +181,32 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.0.0-Universal.dmg (v1.0.0)](releases/TaskManager-1.0.0-Universal.dmg)**
+👉 **[Download TaskManager-1.1.0-Universal.dmg (v1.1.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.1.0-Universal.dmg)**
+
+#### What's new in v1.1.0
+- Fully responsive window: sidebar auto-collapse, adaptive card grids, wrapping headers, and tables that hide columns on narrow widths. The minimum window size is now ~460×420 pt (was 960×640).
+- Always-on menu bar mode: closing the window never quits; the Dock icon hides while the window is closed; launch at login is enabled on first run.
+- Redesigned menu bar popover with sparklines, top processes, and quick actions.
+- Refreshed UI: icon badges, layered cards, smoother charts with consistent component colors, sortable process columns.
+- Fixed a duplicate **View** menu; navigation shortcuts now live in the **Go** menu.
 
 #### Release Verification & Specifications
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.0.0-Universal.dmg`](releases/TaskManager-1.0.0-Universal.dmg) |
-| **Version** | `1.0.0` |
+| **Package** | [`releases/TaskManager-1.1.0-Universal.dmg`](releases/TaskManager-1.1.0-Universal.dmg) |
+| **Version** | `1.1.0` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
-| **Package Size** | ~5.4 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `657a0f98d5f988c4fc01e029c91be999d22af781d9d946963dabd5a18e810a2e` |
+| **Package Size** | ~5.5 MB (Compressed Read-Only UDZO) |
+| **SHA-256 Checksum** | `abd21b9983f05d87ceefad56039f94f22564293a5019a629f6fef1367551f943` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.0.0-Universal.dmg](releases/TaskManager-1.0.0-Universal.dmg)**.
+1. Download **[TaskManager-1.1.0-Universal.dmg](releases/TaskManager-1.1.0-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
+5. The live metric appears in your menu bar. Closing the window keeps it running there; use **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>) to exit.
 
 > [!TIP]
 > **macOS Gatekeeper Notice:** Since this open-source build is ad-hoc signed for independent distribution without an Apple Developer ID certificate, macOS may prompt an alert on the first launch. Simply right-click **Task Manager.app** in `/Applications` and choose **Open**, or run the following command in Terminal:
@@ -188,7 +228,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.0.0-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.1.0-Universal.dmg` and updated in `releases/`.
 
 ---
 
@@ -232,6 +272,9 @@ swift run TaskManager
 | <kbd>⌘</kbd> + <kbd>9</kbd> | Navigate to **Network Telemetry** Detail View |
 | <kbd>⌘</kbd> + <kbd>K</kbd> | Open **Command Palette** (Instant Search & Actions) |
 | <kbd>⌘</kbd> + <kbd>R</kbd> | Force Immediate Hardware Telemetry Refresh |
+| <kbd>⌘</kbd> + <kbd>Q</kbd> | Quit Task Manager (closing the window keeps it in the menu bar) |
+
+Navigation shortcuts are also listed in the **Go** menu.
 
 ---
 

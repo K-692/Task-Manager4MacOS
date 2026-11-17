@@ -106,7 +106,7 @@ public enum HardwareCategory: String, Codable, CaseIterable, Sendable {
     public var systemImage: String {
         switch self {
         case .compute: return "cpu"
-        case .gpu: return "display.trianglebadge.exclamationmark"
+        case .gpu: return "cube.transparent"
         case .memory: return "memorychip"
         case .displays: return "display"
         case .battery: return "battery.100"

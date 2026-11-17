@@ -5,21 +5,53 @@ import TaskManagerCore
 public struct MainLayoutView: View {
     @EnvironmentObject private var env: AppEnvironment
 
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var sidebarAutoCollapsed = false
+
+    /// Below this window width the sidebar collapses automatically so the
+    /// content keeps a usable width; it comes back when the window grows.
+    private let collapseWidth: CGFloat = 680
+
     public init() {}
 
     public var body: some View {
+        GeometryReader { geo in
+            content
+                .onAppear { adaptSidebar(to: geo.size.width) }
+                .onChange(of: geo.size.width) { adaptSidebar(to: $0) }
+        }
+    }
+
+    private func adaptSidebar(to width: CGFloat) {
+        if width < collapseWidth {
+            if columnVisibility != .detailOnly {
+                columnVisibility = .detailOnly
+                sidebarAutoCollapsed = true
+            }
+        } else if width >= collapseWidth + 20, sidebarAutoCollapsed {
+            columnVisibility = .all
+            sidebarAutoCollapsed = false
+        }
+    }
+
+    private var content: some View {
         ZStack {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 SidebarContentView(
                     sampling: env.samplingCoordinator,
                     deviceProfile: env.deviceProfile,
                     selectedDestination: $env.selectedDestination,
                     onOpenCommandPalette: { env.isCommandPalettePresented = true }
                 )
-                .navigationSplitViewColumnWidth(min: 260, ideal: 275, max: 320)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
             } detail: {
-                detailView
-                    .frame(minWidth: 720, minHeight: 540)
+                ResponsiveContainer {
+                    detailView
+                        .id(env.selectedDestination)
+                        .transition(.opacity)
+                }
+                .frame(minWidth: 300, minHeight: 360)
+                .background(DetailBackground())
             }
 
             // Command Palette Modal Overlay (Cmd+K)
@@ -35,6 +67,7 @@ public struct MainLayoutView: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: env.isCommandPalettePresented)
+        .animation(.easeInOut(duration: 0.15), value: env.selectedDestination)
     }
 
     @ViewBuilder
@@ -168,7 +201,8 @@ private struct SidebarContentView: View {
                             Text("CPU")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        .frame(width: 72, alignment: .leading)
+                        .frame(minWidth: 64, alignment: .leading)
+                        .lineLimit(1)
 
                         Spacer()
 
@@ -191,14 +225,15 @@ private struct SidebarContentView: View {
                 NavigationLink(value: AppDestination.gpu) {
                     HStack(spacing: 6) {
                         HStack(spacing: 5) {
-                            Image(systemName: "display.trianglebadge.exclamationmark")
+                            Image(systemName: "cube.transparent")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.purple)
                                 .frame(width: 14)
                             Text("GPU")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        .frame(width: 72, alignment: .leading)
+                        .frame(minWidth: 64, alignment: .leading)
+                        .lineLimit(1)
 
                         Spacer()
 
@@ -228,7 +263,8 @@ private struct SidebarContentView: View {
                             Text("Memory")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        .frame(width: 72, alignment: .leading)
+                        .frame(minWidth: 64, alignment: .leading)
+                        .lineLimit(1)
 
                         Spacer()
 
@@ -258,7 +294,8 @@ private struct SidebarContentView: View {
                             Text("Disk")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        .frame(width: 72, alignment: .leading)
+                        .frame(minWidth: 64, alignment: .leading)
+                        .lineLimit(1)
 
                         Spacer()
 
@@ -288,7 +325,8 @@ private struct SidebarContentView: View {
                             Text("Network")
                                 .font(.system(size: 12, weight: .medium))
                         }
-                        .frame(width: 72, alignment: .leading)
+                        .frame(minWidth: 64, alignment: .leading)
+                        .lineLimit(1)
 
                         Spacer()
 
@@ -318,9 +356,16 @@ private struct SidebarContentView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 11, weight: .bold))
-                    Text("Search & Actions (⌘K)")
+                    Text("Search & Actions")
                         .font(.caption)
-                    Spacer()
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text("⌘K")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color.primary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
@@ -342,4 +387,25 @@ private struct SidebarContentView: View {
         }
     }
 
+}
+
+/// Soft gradient backdrop behind detail pages.
+private struct DetailBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+            LinearGradient(
+                colors: [
+                    Color.indigo.opacity(colorScheme == .dark ? 0.08 : 0.04),
+                    Color.clear,
+                    Color.cyan.opacity(colorScheme == .dark ? 0.05 : 0.03)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        .ignoresSafeArea()
+    }
 }

@@ -1,15 +1,88 @@
 import SwiftUI
+import AppKit
 import TaskManagerCore
 
+/// Bridges AppKit lifecycle events to SwiftUI's `openWindow` action so the main
+/// window can be re-created from the menu bar, the Dock, or a deep link.
+@MainActor
+final class WindowRouter {
+    static let shared = WindowRouter()
+    static let mainWindowID = "main"
+
+    var openMainWindowAction: (() -> Void)?
+    weak var environment: AppEnvironment?
+
+    /// Shows the main window (re-creating it if it was closed) and brings the app forward.
+    func showMainWindow() {
+        if NSApp.activationPolicy() != .regular {
+            NSApp.setActivationPolicy(.regular)
+        }
+        if let window = existingMainWindow() {
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            openMainWindowAction?()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func existingMainWindow() -> NSWindow? {
+        NSApp.windows.first { Self.isMainWindow($0) && $0.isVisible }
+    }
+
+    static func isMainWindow(_ window: NSWindow) -> Bool {
+        // Menu bar extra popovers and system panels are NSPanels; the main dashboard is a regular window.
+        guard !(window is NSPanel), window.canBecomeMain else { return false }
+        return window.identifier?.rawValue.contains(mainWindowID) ?? true
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var observers: [NSObjectProtocol] = []
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Keep the process alive as a menu bar utility: never let macOS
+        // auto-terminate it when no windows are open.
+        ProcessInfo.processInfo.disableAutomaticTermination("Task Manager menu bar monitor")
+        ProcessInfo.processInfo.disableSuddenTermination()
+
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { note in
+            guard let closing = note.object as? NSWindow else { return }
+            MainActor.assumeIsolated {
+                guard WindowRouter.isMainWindow(closing) else { return }
+                // Give AppKit a moment to finish closing, then drop the Dock icon
+                // if no other main window remains.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    MainActor.assumeIsolated {
+                        let stillOpen = NSApp.windows.contains { $0 !== closing && WindowRouter.isMainWindow($0) && $0.isVisible }
+                        let hideDock = WindowRouter.shared.environment?.hideDockIconWhenClosed ?? true
+                        if !stillOpen && hideDock {
+                            NSApp.setActivationPolicy(.accessory)
+                        }
+                    }
+                }
+            }
+        })
+        observers.append(center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { note in
+            guard let window = note.object as? NSWindow else { return }
+            MainActor.assumeIsolated {
+                if WindowRouter.isMainWindow(window), NSApp.activationPolicy() != .regular {
+                    NSApp.setActivationPolicy(.regular)
+                }
+            }
+        })
+    }
+
+    /// Closing the last window must never quit the app — it lives on in the menu bar.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
-            for window in sender.windows where window.canBecomeMain {
-                window.makeKeyAndOrderFront(self)
-                return true
-            }
-            if let url = URL(string: "taskmanager://dashboard") {
-                NSWorkspace.shared.open(url)
+            MainActor.assumeIsolated {
+                WindowRouter.shared.showMainWindow()
             }
         }
         return true
@@ -22,15 +95,18 @@ struct TaskManagerApp: App {
     @StateObject private var env = AppEnvironment()
 
     var body: some Scene {
-        WindowGroup("Task Manager") {
+        Window("Task Manager", id: WindowRouter.mainWindowID) {
             MainLayoutView()
                 .environmentObject(env)
-                .frame(minWidth: 960, minHeight: 640)
+                .frame(minWidth: 460, idealWidth: 1180, minHeight: 420, idealHeight: 760)
                 .preferredColorScheme(colorScheme)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .background(WindowOpenerInstaller())
+                .onAppear { WindowRouter.shared.environment = env }
         }
+        .defaultSize(width: 1180, height: 760)
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         .commands {
@@ -41,7 +117,13 @@ struct TaskManagerApp: App {
                 .keyboardShortcut("k", modifiers: .command)
             }
 
-            CommandMenu("View") {
+            CommandGroup(replacing: .appTermination) {
+                Button("Quit Task Manager") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .keyboardShortcut("q", modifiers: .command)
+            }
+            CommandMenu("Go") {
                 Button("Performance Dashboard") {
                     env.selectedDestination = .dashboard
                 }
@@ -99,9 +181,13 @@ struct TaskManagerApp: App {
         }
 
         // Native Menu Bar Utility updating live every 1s with user-customized components
+        // Always-on menu bar utility. It is not optional: the app keeps running
+        // here after the window is closed, until the user explicitly quits.
         MenuBarExtra {
             MenuBarContentView(sampling: env.samplingCoordinator)
                 .environmentObject(env)
+                .preferredColorScheme(colorScheme)
+                .background(WindowOpenerInstaller())
         } label: {
             MenuBarStatusLabel(env: env, sampling: env.samplingCoordinator)
         }
@@ -120,6 +206,22 @@ struct TaskManagerApp: App {
         if let dest = DeepLinkRouter.destination(from: url) {
             env.selectedDestination = dest
         }
+    }
+}
+
+/// Captures SwiftUI's `openWindow` action so AppKit code can re-open the main window.
+struct WindowOpenerInstaller: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onAppear {
+                let action = openWindow
+                WindowRouter.shared.openMainWindowAction = {
+                    action(id: WindowRouter.mainWindowID)
+                }
+            }
     }
 }
 
@@ -144,7 +246,7 @@ private struct MenuBarStatusLabel: View {
                 Text("\(cpu)%")
                     .monospacedDigit()
             case .gpu:
-                Image(systemName: "display.trianglebadge.exclamationmark")
+                Image(systemName: "cube.transparent")
                 Text("\(gpu)%")
                     .monospacedDigit()
             case .memory:
