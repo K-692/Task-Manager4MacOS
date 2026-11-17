@@ -12,6 +12,9 @@ public struct PerformanceView: View {
         self.sampling = sampling
     }
 
+    @Environment(\.layoutClass) private var layoutClass
+    @Environment(\.contentSize) private var contentSize
+
     public var body: some View {
         let cpu = sampling.latestCPU?.value
         let gpu = sampling.latestGPU?.value
@@ -19,112 +22,133 @@ public struct PerformanceView: View {
         let net = sampling.latestNetwork?.value
         let primaryDisk = sampling.latestStorage?.value?.first
         let procCount = sampling.latestProcesses?.value?.count ?? 0
+        let pad = layoutClass.pagePadding
 
-        VStack(spacing: 12) {
-            // MARK: Top System Ticker Header
-            systemTickerHeader(cpu: cpu, gpu: gpu, mem: mem, net: net, primaryDisk: primaryDisk, procCount: procCount)
+        // Large windows get the fixed "command center" layout that fills the window;
+        // smaller or shorter windows switch to a scrolling adaptive card grid.
+        let fillsWindow = contentSize.width >= 820 && contentSize.height >= 560
 
-            // MARK: Main Non-Scrollable Telemetry Grid
-            GeometryReader { geo in
-                let availableHeight = geo.size.height
-                let row1Height = max(160, (availableHeight - 12) * 0.52)
-                let row2Height = max(140, (availableHeight - 12) * 0.48)
+        Group {
+            if fillsWindow {
+                VStack(spacing: 14) {
+                    systemTickerHeader(cpu: cpu, gpu: gpu, mem: mem, net: net, primaryDisk: primaryDisk, procCount: procCount)
 
-                VStack(spacing: 12) {
-                    // ROW 1: CPU and GPU (50% / 50%) — GPU immediately follows CPU
-                    HStack(spacing: 12) {
-                        // 1. CPU Card
-                        dashboardCard(
-                            destination: .cpu,
-                            title: "CPU",
-                            subtitle: "\(env.deviceProfile.cpuName) • \(cpu?.physicalCores ?? env.deviceProfile.physicalCores) Cores",
-                            icon: "cpu",
-                            accentColor: .indigo,
-                            primaryMetric: String(format: "%.1f%%", cpu?.totalUsagePercent ?? 0.0),
-                            secondaryMetric: "User: \(String(format: "%.0f%%", cpu?.userPercent ?? 0))  Kernel: \(String(format: "%.0f%%", cpu?.systemPercent ?? 0))"
-                        ) {
-                            CPUTimeSeriesChart(
-                                dataPoints: sampling.cpuHistory.values.isEmpty ? [0, 0] : sampling.cpuHistory.values
-                            )
+                    GeometryReader { geo in
+                        let availableHeight = geo.size.height - 14
+                        VStack(spacing: 14) {
+                            HStack(spacing: 14) {
+                                cpuCard(cpu)
+                                gpuCard(gpu)
+                            }
+                            .frame(height: availableHeight * 0.52)
+
+                            HStack(spacing: 14) {
+                                memoryCard(mem)
+                                diskCard(primaryDisk)
+                                networkCard(net)
+                            }
+                            .frame(height: availableHeight * 0.48)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: row1Height)
-
-                        // 2. GPU Card (Immediately after CPU)
-                        dashboardCard(
-                            destination: .gpu,
-                            title: "GPU",
-                            subtitle: "\(gpu?.deviceName ?? "Apple Silicon GPU") • Metal 3",
-                            icon: "display.trianglebadge.exclamationmark",
-                            accentColor: .purple,
-                            primaryMetric: String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0),
-                            secondaryMetric: "Renderer: \(String(format: "%.0f%%", gpu?.rendererUtilizationPercent ?? 0))  VRAM: \(gpu?.formattedInUseMemory ?? "0 MB")"
-                        ) {
-                            GPUTimeSeriesChart(
-                                dataPoints: sampling.gpuHistory.values.isEmpty ? [0, 0] : sampling.gpuHistory.values
-                            )
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: row1Height)
                     }
+                }
+                .padding(.horizontal, pad)
+                .padding(.vertical, 18)
+            } else {
+                ScrollView {
+                    VStack(spacing: 14) {
+                        systemTickerHeader(cpu: cpu, gpu: gpu, mem: mem, net: net, primaryDisk: primaryDisk, procCount: procCount)
 
-                    // ROW 2: Memory, Disk, Network (33.3% / 33.3% / 33.3%)
-                    HStack(spacing: 12) {
-                        // 3. Memory Card
-                        dashboardCard(
-                            destination: .memory,
-                            title: "Memory",
-                            subtitle: "\(mem?.formattedUsed ?? "—") of \(mem?.formattedTotal ?? env.deviceProfile.formattedMemory)",
-                            icon: "memorychip",
-                            accentColor: .blue,
-                            primaryMetric: String(format: "%.0f%%", mem?.usagePercentage ?? 0.0),
-                            secondaryMetric: "Pressure: \(mem?.pressureLevel.capitalized ?? "Normal")  Free: \(mem?.formattedFree ?? "—")"
-                        ) {
-                            MemoryTimeSeriesChart(
-                                dataPoints: sampling.memoryHistory.values.isEmpty ? [0, 0] : sampling.memoryHistory.values
-                            )
+                        let cardHeight: CGFloat = layoutClass == .compact ? 190 : 220
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14)], spacing: 14) {
+                            cpuCard(cpu).frame(height: cardHeight)
+                            gpuCard(gpu).frame(height: cardHeight)
+                            memoryCard(mem).frame(height: cardHeight)
+                            diskCard(primaryDisk).frame(height: cardHeight)
+                            networkCard(net).frame(height: cardHeight)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: row2Height)
-
-                        // 4. Disk Card
-                        dashboardCard(
-                            destination: .disk,
-                            title: "Disk",
-                            subtitle: "\(primaryDisk?.name ?? "Startup Disk") • \(primaryDisk?.fileSystemType ?? "APFS")",
-                            icon: "internaldrive",
-                            accentColor: .emerald,
-                            primaryMetric: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0.0),
-                            secondaryMetric: "\(primaryDisk?.formattedAvailable ?? "—") Free of \(primaryDisk?.formattedTotal ?? "—")"
-                        ) {
-                            DiskTimeSeriesChart(
-                                dataPoints: sampling.diskHistory.values.isEmpty ? [0, 0] : sampling.diskHistory.values
-                            )
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: row2Height)
-
-                        // 5. Network Card
-                        dashboardCard(
-                            destination: .network,
-                            title: "Network",
-                            subtitle: "Primary: \(net?.primaryInterfaceName ?? "en0")",
-                            icon: "network",
-                            accentColor: .cyan,
-                            primaryMetric: net?.formattedInPerSecond ?? "0 B/s",
-                            secondaryMetric: "↓ \(net?.formattedInPerSecond ?? "0 B/s")  ↑ \(net?.formattedOutPerSecond ?? "0 B/s")"
-                        ) {
-                            NetworkThroughputChart(
-                                inboundPoints: sampling.networkInHistory.values.isEmpty ? [0, 0] : sampling.networkInHistory.values,
-                                outboundPoints: sampling.networkOutHistory.values.isEmpty ? [0, 0] : sampling.networkOutHistory.values
-                            )
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: row2Height)
                     }
+                    .padding(.horizontal, pad)
+                    .padding(.vertical, layoutClass == .compact ? 14 : 18)
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 16)
         .onAppear {
             sampling.isDashboardActive = true
+        }
+    }
+
+    // MARK: - Cards
+
+    private func cpuCard(_ cpu: CPUMetrics?) -> some View {
+        dashboardCard(
+            destination: .cpu,
+            title: "CPU",
+            subtitle: "\(env.deviceProfile.cpuName) • \(cpu?.physicalCores ?? env.deviceProfile.physicalCores) Cores",
+            icon: "cpu",
+            accentColor: .indigo,
+            primaryMetric: String(format: "%.1f%%", cpu?.totalUsagePercent ?? 0.0),
+            secondaryMetric: "User \(String(format: "%.0f%%", cpu?.userPercent ?? 0)) · System \(String(format: "%.0f%%", cpu?.systemPercent ?? 0))"
+        ) {
+            CPUTimeSeriesChart(dataPoints: sampling.cpuHistory.values.isEmpty ? [0, 0] : sampling.cpuHistory.values)
+        }
+    }
+
+    private func gpuCard(_ gpu: GPUMetrics?) -> some View {
+        dashboardCard(
+            destination: .gpu,
+            title: "GPU",
+            subtitle: "\(gpu?.deviceName ?? "Apple Silicon GPU") • Metal 3",
+            icon: "cube.transparent",
+            accentColor: .purple,
+            primaryMetric: String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0),
+            secondaryMetric: "Renderer \(String(format: "%.0f%%", gpu?.rendererUtilizationPercent ?? 0)) · VRAM \(gpu?.formattedInUseMemory ?? "0 MB")"
+        ) {
+            GPUTimeSeriesChart(dataPoints: sampling.gpuHistory.values.isEmpty ? [0, 0] : sampling.gpuHistory.values)
+        }
+    }
+
+    private func memoryCard(_ mem: MemoryMetrics?) -> some View {
+        dashboardCard(
+            destination: .memory,
+            title: "Memory",
+            subtitle: "\(mem?.formattedUsed ?? "—") of \(mem?.formattedTotal ?? env.deviceProfile.formattedMemory)",
+            icon: "memorychip",
+            accentColor: .blue,
+            primaryMetric: String(format: "%.0f%%", mem?.usagePercentage ?? 0.0),
+            secondaryMetric: "Pressure \(mem?.pressureLevel.capitalized ?? "Normal") · Free \(mem?.formattedFree ?? "—")"
+        ) {
+            MemoryTimeSeriesChart(dataPoints: sampling.memoryHistory.values.isEmpty ? [0, 0] : sampling.memoryHistory.values)
+        }
+    }
+
+    private func diskCard(_ primaryDisk: VolumeInfo?) -> some View {
+        dashboardCard(
+            destination: .disk,
+            title: "Disk",
+            subtitle: "\(primaryDisk?.name ?? "Startup Disk") • \(primaryDisk?.fileSystemType ?? "APFS")",
+            icon: "internaldrive",
+            accentColor: .emerald,
+            primaryMetric: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0.0),
+            secondaryMetric: "\(primaryDisk?.formattedAvailable ?? "—") free of \(primaryDisk?.formattedTotal ?? "—")"
+        ) {
+            DiskTimeSeriesChart(dataPoints: sampling.diskHistory.values.isEmpty ? [0, 0] : sampling.diskHistory.values)
+        }
+    }
+
+    private func networkCard(_ net: NetworkMetrics?) -> some View {
+        dashboardCard(
+            destination: .network,
+            title: "Network",
+            subtitle: "Primary: \(net?.primaryInterfaceName ?? "en0")",
+            icon: "network",
+            accentColor: .cyan,
+            primaryMetric: net?.formattedInPerSecond ?? "0 B/s",
+            secondaryMetric: "↓ \(net?.formattedInPerSecond ?? "0 B/s") · ↑ \(net?.formattedOutPerSecond ?? "0 B/s")"
+        ) {
+            NetworkThroughputChart(
+                inboundPoints: sampling.networkInHistory.values.isEmpty ? [0, 0] : sampling.networkInHistory.values,
+                outboundPoints: sampling.networkOutHistory.values.isEmpty ? [0, 0] : sampling.networkOutHistory.values
+            )
         }
     }
 
@@ -142,59 +166,58 @@ public struct PerformanceView: View {
         Button(action: {
             env.selectedDestination = destination
         }) {
-            CardView {
-                VStack(alignment: .leading, spacing: 6) {
-                    // Card Top Row
-                    HStack(alignment: .top) {
-                        HStack(spacing: 7) {
-                            Image(systemName: icon)
+            CardView(padding: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .center, spacing: 9) {
+                        IconBadge(systemName: icon, tint: accentColor, size: 26)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(title)
                                 .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(accentColor)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(title)
-                                    .font(.system(size: 13, weight: .bold))
-                                Text(subtitle)
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
+                                .lineLimit(1)
+                            Text(subtitle)
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                         }
+                        .layoutPriority(1)
 
-                        Spacer()
+                        Spacer(minLength: 6)
 
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(primaryMetric)
-                                .font(.system(size: 15, weight: .bold, design: .monospaced))
-                                .foregroundColor(accentColor)
-                            HStack(spacing: 2) {
-                                Text("Details")
-                                    .font(.system(size: 9, weight: .semibold))
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 7, weight: .bold))
-                            }
-                            .foregroundColor(.secondary.opacity(0.8))
-                        }
+                        Text(primaryMetric)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(accentColor)
+                            .lineLimit(1)
+                            .fixedSize()
                     }
 
-                    // 60-Second Real-Time Chart
                     chart()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    // Card Bottom Stats Footer
-                    HStack {
+                    HStack(spacing: 6) {
                         Text(secondaryMetric)
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
-                        Spacer()
-                        Text("60s Window")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .truncationMode(.tail)
+                        Spacer(minLength: 4)
+                        HStack(spacing: 2) {
+                            Text("Details")
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 7, weight: .bold))
+                        }
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.secondary.opacity(0.8))
+                        .fixedSize()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CardPressStyle())
+        .focusable(false)
     }
 
     // MARK: - System Ticker Header Banner
@@ -206,40 +229,47 @@ public struct PerformanceView: View {
         primaryDisk: VolumeInfo?,
         procCount: Int
     ) -> some View {
-        HStack(alignment: .center) {
-            HStack(spacing: 8) {
-                Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.indigo)
+        let pills = Group {
+            pillItem(label: "CPU", val: String(format: "%.0f%%", cpu?.totalUsagePercent ?? 0), color: .indigo)
+            pillItem(label: "GPU", val: String(format: "%.0f%%", gpu?.utilizationPercent ?? 0), color: .purple)
+            pillItem(label: "RAM", val: String(format: "%.0f%%", mem?.usagePercentage ?? 0), color: .blue)
+            pillItem(label: "DISK", val: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0), color: .emerald)
+            pillItem(label: "NET", val: net?.formattedInPerSecond ?? "0 B/s", color: .cyan)
+            pillItem(label: "PROCS", val: "\(procCount)", color: .secondary)
+        }
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Performance Dashboard")
-                        .font(.system(size: 15, weight: .bold))
-                    Text("\(env.deviceProfile.marketingName) • macOS \(env.deviceProfile.osVersion) (\(env.deviceProfile.osBuild))")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(.secondary)
-                }
+        let title = HStack(spacing: 10) {
+            IconBadge(systemName: "gauge.with.dots.needle.bottom.50percent", tint: .indigo, size: 32)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Performance")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                Text(env.deviceProfile.marketingName)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
             }
+        }
 
-            Spacer()
-
-            // Quick Live Pill Ticker
-            HStack(spacing: 10) {
-                pillItem(label: "CPU", val: String(format: "%.0f%%", cpu?.totalUsagePercent ?? 0), color: .indigo)
-                pillItem(label: "GPU", val: String(format: "%.0f%%", gpu?.utilizationPercent ?? 0), color: .purple)
-                pillItem(label: "RAM", val: String(format: "%.0f%%", mem?.usagePercentage ?? 0), color: .blue)
-                pillItem(label: "DISK", val: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0), color: .emerald)
-                pillItem(label: "NET", val: net?.formattedInPerSecond ?? "0 B/s", color: .cyan)
-                pillItem(label: "PROCS", val: "\(procCount)", color: .secondary)
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 12) {
+                title
+                Spacer(minLength: 12)
+                HStack(spacing: 6) { pills }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                title
+                FlowLayout(spacing: 6, lineSpacing: 6) { pills }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
+                .fill(LinearGradient(colors: [Color.indigo.opacity(0.10), Color.cyan.opacity(0.05)], startPoint: .leading, endPoint: .trailing))
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
         )
     }
 
@@ -252,9 +282,22 @@ public struct PerformanceView: View {
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundColor(color)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(color.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .lineLimit(1)
+        .fixedSize()
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .frame(minWidth: 0, alignment: .leading)
+        .background(color.opacity(0.10))
+        .clipShape(Capsule())
+    }
+}
+
+/// Subtle press feedback for clickable dashboard cards.
+struct CardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

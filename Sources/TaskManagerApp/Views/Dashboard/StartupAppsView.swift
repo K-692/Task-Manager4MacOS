@@ -11,21 +11,13 @@ public struct StartupAppsView: View {
     public init() {}
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
-                // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Startup Apps")
-                            .font(.system(size: 24, weight: .bold))
-                        Text("Manage background startup services and login items.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, AppTheme.Spacing.md)
-                .padding(.top, AppTheme.Spacing.sm)
+        DetailPage {
+                DetailHeader(
+                    icon: "bolt.fill",
+                    tint: .amber,
+                    title: "Startup Apps",
+                    subtitle: "Manage background startup services and login items."
+                )
 
                 // Task Manager Login Item Card
                 CardView {
@@ -38,7 +30,7 @@ public struct StartupAppsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Task Manager")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text("com.taskmanager.macos • macOS SMAppService")
+                                Text("com.k692.TaskManager • SMAppService")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -81,7 +73,6 @@ public struct StartupAppsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
 
                 // Informational Card
                 CardView {
@@ -109,16 +100,12 @@ public struct StartupAppsView: View {
                         .padding(.top, 4)
                     }
                 }
-                .padding(.horizontal, AppTheme.Spacing.md)
 
                 if let err = errorMessage {
                     Text(err)
                         .font(.caption)
                         .foregroundColor(.rose)
-                        .padding(.horizontal, AppTheme.Spacing.md)
-                }
-            }
-            .padding(.bottom, AppTheme.Spacing.xxl)
+                        }
         }
         .onAppear {
             launchAtLogin = env.loginItemService.isEnabled

@@ -24,7 +24,7 @@ public enum MenuBarMetric: String, CaseIterable, Codable {
     public var icon: String {
         switch self {
         case .cpu: return "cpu"
-        case .gpu: return "display.trianglebadge.exclamationmark"
+        case .gpu: return "cube.transparent"
         case .memory: return "memorychip"
         case .disk: return "internaldrive"
         case .network: return "network"
@@ -48,7 +48,13 @@ public final class AppEnvironment: ObservableObject {
     @Published public var capabilities: [CapabilityRecord] = []
     @Published public var selectedDestination: AppDestination = .dashboard
     @Published public var appearanceMode: String = "system"
-    @Published public var keepInMenuBar: Bool = true
+    /// The menu bar widget is always on; this controls whether the Dock icon
+    /// disappears while the main window is closed.
+    @Published public var hideDockIconWhenClosed: Bool = true {
+        didSet {
+            try? settingsRepo.setBool(key: "hide_dock_when_closed", value: hideDockIconWhenClosed)
+        }
+    }
     @Published public var launchAtLogin: Bool = false
     @Published public var searchQuery: String = ""
     @Published public var selectedProcessPID: Int32? = nil
@@ -128,7 +134,14 @@ public final class AppEnvironment: ObservableObject {
 
             // Load saved settings
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
-            self.keepInMenuBar = sRepo.getBool(key: "keep_in_menu_bar", default: true)
+            self.hideDockIconWhenClosed = sRepo.getBool(key: "hide_dock_when_closed", default: true)
+
+            // First launch: register as a login item so the menu bar widget is
+            // available after every restart. Users can switch it off in Settings.
+            if !sRepo.getBool(key: "did_initial_login_item_setup", default: false) {
+                try? loginItemService.setLaunchAtLogin(enabled: true)
+                try? sRepo.setBool(key: "did_initial_login_item_setup", value: true)
+            }
             self.launchAtLogin = loginItemService.isEnabled
             let savedMetric = sRepo.getString(key: "menubar_selected_metric", default: "cpu")
             self.selectedMenuBarMetric = MenuBarMetric(rawValue: savedMetric) ?? .cpu

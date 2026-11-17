@@ -5,7 +5,8 @@ set -euo pipefail
 ./Scripts/build-universal.sh
 
 APP_NAME="Task Manager"
-DMG_NAME="TaskManager-1.0.0-Universal.dmg"
+VERSION="1.1.0"
+DMG_NAME="TaskManager-${VERSION}-Universal.dmg"
 DIST_DIR="dist"
 RELEASES_DIR="releases"
 DMG_STAGING="${DIST_DIR}/dmg_staging"
