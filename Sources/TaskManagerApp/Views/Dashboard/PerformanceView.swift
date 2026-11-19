@@ -14,6 +14,11 @@ public struct PerformanceView: View {
 
     @Environment(\.layoutClass) private var layoutClass
     @Environment(\.contentSize) private var contentSize
+    @Environment(\.visualTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var captureResult: TelemetryCaptureService.Result?
+    @State private var captureError: String?
+    @State private var isCapturing = false
 
     public var body: some View {
         let cpu = sampling.latestCPU?.value
@@ -72,8 +77,81 @@ public struct PerformanceView: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) { captureToast }
+        .animation(.easeOut(duration: 0.2), value: captureResult?.folder)
+        .animation(.easeOut(duration: 0.2), value: captureError)
         .onAppear {
             sampling.isDashboardActive = true
+        }
+    }
+
+    // MARK: - Capture
+
+    private var captureButton: some View {
+        Button {
+            capture()
+        } label: {
+            Label(isCapturing ? "Capturing…" : "Capture", systemImage: "camera.viewfinder")
+                .font(.system(size: 12, weight: .semibold))
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(theme.isPublication ? PublicationPalette.text : .indigo)
+        .controlSize(.regular)
+        .disabled(isCapturing)
+        .help("Save CPU, GPU, Memory, Storage and Network as five separate figures (same instant, current theme) to a new folder on your Desktop")
+        .fixedSize()
+    }
+
+    private func capture() {
+        isCapturing = true
+        captureError = nil
+        do {
+            captureResult = try TelemetryCaptureService.captureAll(env: env, colorScheme: colorScheme)
+        } catch {
+            captureResult = nil
+            captureError = error.localizedDescription
+        }
+        isCapturing = false
+        let folder = captureResult?.folder
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+            if captureResult?.folder == folder { captureResult = nil }
+            captureError = nil
+        }
+    }
+
+    @ViewBuilder
+    private var captureToast: some View {
+        if let result = captureResult {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill").foregroundColor(.emerald)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Saved \(result.files.count) figures to your Desktop")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(result.folder.lastPathComponent)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Button("Show in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting(result.files)
+                }
+                .controlSize(.small)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
+            .padding(.bottom, 18)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        } else if let error = captureError {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.rose)
+                .padding(10)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.bottom, 18)
+                .transition(.opacity)
         }
     }
 
@@ -85,7 +163,7 @@ public struct PerformanceView: View {
             title: "CPU",
             subtitle: "\(env.deviceProfile.cpuName) • \(cpu?.physicalCores ?? env.deviceProfile.physicalCores) Cores",
             icon: "cpu",
-            accentColor: .indigo,
+            accentColor: TelemetryKind.cpu.color(for: theme),
             primaryMetric: String(format: "%.1f%%", cpu?.totalUsagePercent ?? 0.0),
             secondaryMetric: "User \(String(format: "%.0f%%", cpu?.userPercent ?? 0)) · System \(String(format: "%.0f%%", cpu?.systemPercent ?? 0))"
         ) {
@@ -99,7 +177,7 @@ public struct PerformanceView: View {
             title: "GPU",
             subtitle: "\(gpu?.deviceName ?? "Apple Silicon GPU") • Metal 3",
             icon: "cube.transparent",
-            accentColor: .purple,
+            accentColor: TelemetryKind.gpu.color(for: theme),
             primaryMetric: String(format: "%.1f%%", gpu?.utilizationPercent ?? 0.0),
             secondaryMetric: "Renderer \(String(format: "%.0f%%", gpu?.rendererUtilizationPercent ?? 0)) · VRAM \(gpu?.formattedInUseMemory ?? "0 MB")"
         ) {
@@ -113,7 +191,7 @@ public struct PerformanceView: View {
             title: "Memory",
             subtitle: "\(mem?.formattedUsed ?? "—") of \(mem?.formattedTotal ?? env.deviceProfile.formattedMemory)",
             icon: "memorychip",
-            accentColor: .blue,
+            accentColor: TelemetryKind.memory.color(for: theme),
             primaryMetric: String(format: "%.0f%%", mem?.usagePercentage ?? 0.0),
             secondaryMetric: "Pressure \(mem?.pressureLevel.capitalized ?? "Normal") · Free \(mem?.formattedFree ?? "—")"
         ) {
@@ -124,10 +202,10 @@ public struct PerformanceView: View {
     private func diskCard(_ primaryDisk: VolumeInfo?) -> some View {
         dashboardCard(
             destination: .disk,
-            title: "Disk",
+            title: "Storage",
             subtitle: "\(primaryDisk?.name ?? "Startup Disk") • \(primaryDisk?.fileSystemType ?? "APFS")",
             icon: "internaldrive",
-            accentColor: .emerald,
+            accentColor: TelemetryKind.storage.color(for: theme),
             primaryMetric: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0.0),
             secondaryMetric: "\(primaryDisk?.formattedAvailable ?? "—") free of \(primaryDisk?.formattedTotal ?? "—")"
         ) {
@@ -141,7 +219,7 @@ public struct PerformanceView: View {
             title: "Network",
             subtitle: "Primary: \(net?.primaryInterfaceName ?? "en0")",
             icon: "network",
-            accentColor: .cyan,
+            accentColor: TelemetryKind.network.color(for: theme),
             primaryMetric: net?.formattedInPerSecond ?? "0 B/s",
             secondaryMetric: "↓ \(net?.formattedInPerSecond ?? "0 B/s") · ↑ \(net?.formattedOutPerSecond ?? "0 B/s")"
         ) {
@@ -230,11 +308,11 @@ public struct PerformanceView: View {
         procCount: Int
     ) -> some View {
         let pills = Group {
-            pillItem(label: "CPU", val: String(format: "%.0f%%", cpu?.totalUsagePercent ?? 0), color: .indigo)
-            pillItem(label: "GPU", val: String(format: "%.0f%%", gpu?.utilizationPercent ?? 0), color: .purple)
-            pillItem(label: "RAM", val: String(format: "%.0f%%", mem?.usagePercentage ?? 0), color: .blue)
-            pillItem(label: "DISK", val: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0), color: .emerald)
-            pillItem(label: "NET", val: net?.formattedInPerSecond ?? "0 B/s", color: .cyan)
+            pillItem(label: "CPU", val: String(format: "%.0f%%", cpu?.totalUsagePercent ?? 0), color: TelemetryKind.cpu.color(for: theme))
+            pillItem(label: "GPU", val: String(format: "%.0f%%", gpu?.utilizationPercent ?? 0), color: TelemetryKind.gpu.color(for: theme))
+            pillItem(label: "RAM", val: String(format: "%.0f%%", mem?.usagePercentage ?? 0), color: TelemetryKind.memory.color(for: theme))
+            pillItem(label: "DISK", val: String(format: "%.0f%%", primaryDisk?.usagePercentage ?? 0), color: TelemetryKind.storage.color(for: theme))
+            pillItem(label: "NET", val: net?.formattedInPerSecond ?? "0 B/s", color: TelemetryKind.network.color(for: theme))
             pillItem(label: "PROCS", val: "\(procCount)", color: .secondary)
         }
 
@@ -250,26 +328,34 @@ public struct PerformanceView: View {
             }
         }
 
+        let pub = theme.isPublication
         return ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: 12) {
                 title
                 Spacer(minLength: 12)
                 HStack(spacing: 6) { pills }
+                captureButton
             }
             VStack(alignment: .leading, spacing: 10) {
-                title
+                HStack {
+                    title
+                    Spacer(minLength: 8)
+                    captureButton
+                }
                 FlowLayout(spacing: 6, lineSpacing: 6) { pills }
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
-                .fill(LinearGradient(colors: [Color.indigo.opacity(0.10), Color.cyan.opacity(0.05)], startPoint: .leading, endPoint: .trailing))
+            RoundedRectangle(cornerRadius: pub ? 0 : AppTheme.Radius.lg, style: .continuous)
+                .fill(pub
+                      ? AnyShapeStyle(Color.white)
+                      : AnyShapeStyle(LinearGradient(colors: [Color.indigo.opacity(0.10), Color.cyan.opacity(0.05)], startPoint: .leading, endPoint: .trailing)))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
+            RoundedRectangle(cornerRadius: pub ? 0 : AppTheme.Radius.lg, style: .continuous)
+                .strokeBorder(pub ? PublicationPalette.axis.opacity(0.55) : Color.primary.opacity(0.07), lineWidth: pub ? 0.75 : 1)
         )
     }
 

@@ -136,8 +136,10 @@ public struct SettingsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 7))
                 }
 
-                SectionCard("Appearance", icon: "paintpalette", tint: .purple) {
-                    Text("Match macOS or force light or dark mode.")
+                SectionCard("Appearance", icon: "circle.lefthalf.filled", tint: .purple) {
+                    Text(env.visualTheme.isPublication
+                         ? "The Publication theme always uses a white background."
+                         : "Match macOS or force light or dark mode.")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -149,6 +151,23 @@ public struct SettingsView: View {
                     .padding(2)
                     .background(Color.primary.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .disabled(env.visualTheme.isPublication)
+                    .opacity(env.visualTheme.isPublication ? 0.45 : 1)
+                }
+            }
+
+            // 4b. Visual theme (standard vs. paper-ready)
+            SectionCard("Theme", icon: "doc.richtext", tint: .indigo, accessory: {
+                PillTag(env.visualTheme.title.uppercased(), tint: .indigo)
+            }) {
+                Text("Publication gives a minimal, paper-ready look for screenshots and figures: white background, serif text, colour-blind-safe lines, labelled time axis, and mean and peak markers. The dashboard's Capture button uses the current theme.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
+                    ForEach(VisualTheme.allCases, id: \.self) { option in
+                        themeOption(option)
+                    }
                 }
             }
 
@@ -204,9 +223,36 @@ public struct SettingsView: View {
     }
 
     private var appVersion: String {
-        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.2"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "5"
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "6"
         return "\(short) (\(build))"
+    }
+
+    private func themeOption(_ option: VisualTheme) -> some View {
+        let selected = env.visualTheme == option
+        return Button {
+            env.visualTheme = option
+        } label: {
+            HStack(spacing: 12) {
+                ThemePreview(theme: option)
+                    .frame(width: 92, height: 56)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(option.title)
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(option.subtitle)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(selected ? .indigo : .secondary.opacity(0.5))
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? Color.indigo.opacity(0.10) : Color.primary.opacity(0.03)))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(selected ? Color.indigo.opacity(0.6) : Color.primary.opacity(0.08), lineWidth: selected ? 1.5 : 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func settingRow<Accessory: View>(title: String, detail: String, @ViewBuilder accessory: () -> Accessory) -> some View {
@@ -378,4 +424,44 @@ public struct SettingsView: View {
         }
     }
 
+}
+
+/// Small static thumbnail illustrating each theme.
+private struct ThemePreview: View {
+    let theme: VisualTheme
+
+    var body: some View {
+        let pub = theme.isPublication
+        let line: [CGFloat] = [0.55, 0.4, 0.62, 0.35, 0.5, 0.3, 0.45, 0.25, 0.38]
+        ZStack {
+            if pub {
+                Color.white
+            } else {
+                LinearGradient(colors: [Color(white: 0.16), Color(white: 0.11)], startPoint: .top, endPoint: .bottom)
+            }
+            GeometryReader { geo in
+                let w = geo.size.width, h = geo.size.height
+                Path { p in
+                    for (i, v) in line.enumerated() {
+                        let pt = CGPoint(x: w * CGFloat(i) / CGFloat(line.count - 1), y: h * v)
+                        i == 0 ? p.move(to: pt) : p.addLine(to: pt)
+                    }
+                }
+                .stroke(pub ? PublicationPalette.blue : Color.indigo, lineWidth: 1.5)
+                if pub {
+                    Path { p in
+                        p.move(to: CGPoint(x: 0, y: h * 0.42))
+                        p.addLine(to: CGPoint(x: w, y: h * 0.42))
+                    }
+                    .stroke(Color.black.opacity(0.7), style: StrokeStyle(lineWidth: 0.8, dash: [3, 2]))
+                }
+            }
+            .padding(8)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: pub ? 2 : 6, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: pub ? 2 : 6, style: .continuous)
+                .strokeBorder(pub ? Color.black.opacity(0.6) : Color.white.opacity(0.1), lineWidth: pub ? 0.75 : 1)
+        )
+    }
 }

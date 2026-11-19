@@ -186,7 +186,7 @@ struct TaskManagerApp: App {
         MenuBarExtra {
             MenuBarContentView(sampling: env.samplingCoordinator)
                 .environmentObject(env)
-                .preferredColorScheme(colorScheme)
+                .preferredColorScheme(standardColorScheme)
                 .background(WindowOpenerInstaller())
         } label: {
             MenuBarStatusLabel(env: env, sampling: env.samplingCoordinator)
@@ -195,6 +195,17 @@ struct TaskManagerApp: App {
     }
 
     private var colorScheme: ColorScheme? {
+        // The publication theme is always light (white paper).
+        if env.visualTheme.isPublication { return .light }
+        switch env.appearanceMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
+
+    /// The menu bar popup keeps the standard look regardless of the publication theme.
+    private var standardColorScheme: ColorScheme? {
         switch env.appearanceMode {
         case "light": return .light
         case "dark": return .dark

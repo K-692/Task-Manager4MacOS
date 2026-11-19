@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.2.2-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.2.2-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.3.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.3.0-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -47,6 +47,7 @@
 - **True GPU Visualization:** Real-time GPU load percentage, renderer utilization, tiler utilization, and allocated/in-use VRAM directly from Apple Silicon & discrete GPUs.
 - **Memory-First Process Sorting:** Processes default-sorted by physical resident memory footprint for instant leak detection, with instant "End Task" process control.
 - **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear. No SQLite metric rollups $>60$ seconds.
+- **Research-Ready Figures:** Switch to the minimal **Publication** theme and press **Capture** to save all five live telemetry charts as separate paper-ready PNG figures from the same moment.
 - **Refreshed Design (v1.1):** Gradient icon badges, layered cards, smooth monotone charts with consistent per-component colors, and a redesigned menu bar popover with sparklines and top processes.
 
 ---
@@ -59,6 +60,28 @@
 </p>
 
 *The Performance Dashboard is a command center with 60-second live charts for CPU, GPU, Memory, Disk and Network, a live stat ticker, and sidebar sparklines. Click any card to open that component's detail page.*
+
+---
+
+### 1b. Publication Theme (Paper-Ready)
+<p align="center">
+  <img src="App_Screenshots/Dashboard-Publication.png" alt="Dashboard in the Publication theme" width="100%" />
+</p>
+
+*The Publication theme strips the UI down to what a figure needs: white panels with thin rules, serif type, colour-blind-safe series colours, labelled time and unit axes, a dotted mean line, and a ▲ peak marker.*
+
+#### Captured figures
+Press **Capture** on the dashboard and five separate figures (CPU, GPU, Memory, Storage, Network) are saved to a new folder on your Desktop, all from the same instant and in the current theme:
+
+<p align="center">
+  <img src="App_Screenshots/Figure-CPU-Publication.png" alt="Captured CPU figure, publication theme" width="49%" />
+  <img src="App_Screenshots/Figure-Network-Publication.png" alt="Captured network figure, publication theme" width="49%" />
+</p>
+<p align="center">
+  <img src="App_Screenshots/Figure-CPU-Standard.png" alt="Captured CPU figure, standard theme" width="49%" />
+</p>
+
+*Each figure has a title, device and macOS details, the 60-second chart, summary statistics (current, mean, standard deviation, min, max, sample count and interval) and a caption with the capture timestamp. Top: Publication theme. Bottom: Standard theme.*
 
 ---
 
@@ -158,6 +181,18 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - Instant **"End Task"** action button and context menu with graceful (`NSRunningApplication.terminate`) and forced (`SIGKILL`) termination options.
 - Instant search filter by application name, bundle identifier, or process PID.
 
+### 5b. 📄 Publication Theme & Figure Capture (for researchers)
+- **Two themes** in **Settings → Theme**:
+  - **Standard:** the colourful app look (follows System / Light / Dark).
+  - **Publication:** minimal and paper-ready, always on a white background, with serif typography, Okabe–Ito colour-blind-safe colours, solid/dashed line styles that survive greyscale printing, labelled *Time (s)* and unit axes with ticks, a plot frame, a **dotted mean line** and a **▲ peak marker** on every chart.
+- **Capture button** on the Performance Dashboard:
+  - Saves **five separate PNG figures** (`1-CPU.png`, `2-GPU.png`, `3-Memory.png`, `4-Storage.png`, `5-Network.png`) to `~/Desktop/Task Manager Capture <date> at <time> (<theme>)/`.
+  - All five are rendered from **one snapshot taken at the same instant**, so the figures are directly comparable.
+  - They use the **current theme**, at 2880×1620 px (3× of 960×540 pt).
+  - Each figure includes the title, device and macOS version, the chart, statistics (current, mean, std. dev., min, max, samples @ interval) and a caption with the timestamp and an explanation of the markings.
+  - Network figures auto-scale to KB/s or MB/s and include a line-style legend (solid = download, dashed = upload).
+- The first capture may trigger macOS's one-time **"access files in your Desktop folder"** prompt. Allow it so figures can be saved.
+
 ### 6. 🎮 GPU Visualization & Telemetry (Apple Metal + IOKit)
 - **Live 60-Second Utilization Graph:** Continuous GPU engine load time-series rendered via Swift Charts.
 - **Multi-Engine Breakdown:** Overall Device Utilization %, Renderer Core Utilization %, and Tiler Pipeline Utilization %.
@@ -171,7 +206,8 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - **Live Menu Bar Preview:** Immediate preview of the active menu bar status item.
 - **Background & Startup:** Hide the Dock icon while the window is closed, and toggle launch at login.
 - **Telemetry & Sample Rate Control:** Custom segmented cadence pills (`0.5s Fast`, `1.0s Normal`, `3.0s Eco`, `Pause`) with active interval badge and explicit volatile in-memory ring buffer architecture (zero disk writes).
-- **Appearance & Theme:** System, Light, and Dark mode selectors with instant interface adaptation.
+- **Theme:** Standard or Publication (paper-ready). See the Publication Theme & Figure Capture section above.
+- **Appearance:** System, Light, and Dark mode selectors (Standard theme; Publication always uses white).
 - **Hardware Specs:** Device model, architecture, processor, installed RAM, graphics and macOS version in an adaptive grid.
 - **Desktop Widget Blueprint:** See [`Documentation/DesktopWidgetGuide.md`](Documentation/DesktopWidgetGuide.md) for full architectural patterns and Swift source code to add native macOS Sonoma/Sequoia Desktop Widgets.
 
@@ -183,7 +219,11 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.2.2-Universal.dmg (v1.2.2)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.2.2-Universal.dmg)**
+👉 **[Download TaskManager-1.3.0-Universal.dmg (v1.3.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.3.0-Universal.dmg)**
+
+#### What's new in v1.3.0
+- **Publication theme:** a second visual theme (**Settings → Theme**) for researchers: white background, serif type, colour-blind-safe (Okabe–Ito) lines, labelled *Time (s)* and unit axes, a dotted mean line and a ▲ peak marker on every chart, ready to paste into a paper.
+- **One-click Capture:** a **Capture** button on the dashboard saves CPU, GPU, Memory, Storage and Network as **five separate high-resolution PNG figures** (2880×1620) from the **same instant**, in the current theme, into a new folder on your Desktop.
 
 #### What's new in v1.2.2
 - **Centered menu bar item:** the icon and value are now centred in a tightly sized fixed-width slot, so the spacing is even on both sides and the item still never changes size or pushes other menu bar icons.
@@ -206,15 +246,15 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.2.2-Universal.dmg`](releases/TaskManager-1.2.2-Universal.dmg) |
-| **Version** | `1.2.2` |
+| **Package** | [`releases/TaskManager-1.3.0-Universal.dmg`](releases/TaskManager-1.3.0-Universal.dmg) |
+| **Version** | `1.3.0` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
-| **Package Size** | ~5.7 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `04daba7b5dab508889b90ef610cb755690c2ff7c376347a1a02b7983dc854d76` |
+| **Package Size** | ~6.0 MB (Compressed Read-Only UDZO) |
+| **SHA-256 Checksum** | `9400e61615027ad64878c5f0182a634de0365437ee4fce8ce49d885e7804603a` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.2.2-Universal.dmg](releases/TaskManager-1.2.2-Universal.dmg)**.
+1. Download **[TaskManager-1.3.0-Universal.dmg](releases/TaskManager-1.3.0-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -240,7 +280,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.2.2-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.3.0-Universal.dmg` and updated in `releases/`.
 
 ---
 

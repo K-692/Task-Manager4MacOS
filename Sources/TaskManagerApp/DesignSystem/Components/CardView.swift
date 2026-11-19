@@ -6,6 +6,7 @@ public struct CardView<Content: View>: View {
     private let padding: CGFloat
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.layoutClass) private var layoutClass
+    @Environment(\.visualTheme) private var theme
 
     public init(padding: CGFloat = AppTheme.Spacing.md, @ViewBuilder content: () -> Content) {
         self.padding = padding
@@ -13,10 +14,22 @@ public struct CardView<Content: View>: View {
     }
 
     public var body: some View {
-        let shape = RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
         let effectivePadding = layoutClass == .compact ? min(padding, 12) : padding
+        if theme.isPublication {
+            // Paper-ready: flat white panel with a thin dark rule, no shadow or gradient.
+            content
+                .padding(effectivePadding)
+                .background(Rectangle().fill(Color.white))
+                .overlay(Rectangle().strokeBorder(PublicationPalette.axis.opacity(0.55), lineWidth: 0.75))
+        } else {
+            standard(effectivePadding)
+        }
+    }
 
-        content
+    private func standard(_ effectivePadding: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
+
+        return content
             .padding(effectivePadding)
             .background(
                 shape
