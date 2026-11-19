@@ -250,15 +250,50 @@ private struct MenuBarStatusLabel: View {
             }
         }()
 
-        HStack(spacing: 3) {
+        // Rendered as a fixed-size template image: the status item keeps exactly the
+        // same width whatever the metric or value, so neighbouring menu bar items
+        // never shift while the metrics rotate.
+        if let image = Self.renderLabel(icon: metric.icon, value: value) {
+            Image(nsImage: image)
+        } else {
             Image(systemName: metric.icon)
-            Text(value)
-                .monospacedDigit()
         }
     }
 
+    /// Fixed slot sizes (points). Wide enough for the longest value ("99.9M" / "100%").
+    private static let iconSlot: CGFloat = 18
+    private static let valueSlot: CGFloat = 40
+    private static let spacing: CGFloat = 4
+    private static let height: CGFloat = 18
+
+    @MainActor
+    private static func renderLabel(icon: String, value: String) -> NSImage? {
+        let content = HStack(spacing: spacing) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: iconSlot, height: height, alignment: .center)
+            Text(value)
+                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: valueSlot, height: height, alignment: .leading)
+        }
+        .foregroundColor(.black)
+        .frame(width: iconSlot + spacing + valueSlot, height: height)
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
+        guard let image = renderer.nsImage else { return nil }
+        image.size = NSSize(width: iconSlot + spacing + valueSlot, height: height)
+        // Template images are tinted by macOS to match the light/dark menu bar.
+        image.isTemplate = true
+        return image
+    }
+
     private func formatCompactRate(_ bytesPerSec: Double) -> String {
-        if bytesPerSec >= 1_048_576 {
+        if bytesPerSec >= 100 * 1_048_576 {
+            return String(format: "%.0fM", bytesPerSec / 1_048_576)
+        } else if bytesPerSec >= 1_048_576 {
             return String(format: "%.1fM", bytesPerSec / 1_048_576)
         } else if bytesPerSec >= 1024 {
             return String(format: "%.0fK", bytesPerSec / 1024)
