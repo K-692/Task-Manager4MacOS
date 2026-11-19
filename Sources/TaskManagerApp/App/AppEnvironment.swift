@@ -16,7 +16,7 @@ public enum MenuBarMetric: String, CaseIterable, Codable {
         case .cpu: return "CPU"
         case .gpu: return "GPU"
         case .memory: return "Memory"
-        case .disk: return "Disk"
+        case .disk: return "Storage"
         case .network: return "Network"
         }
     }
@@ -56,6 +56,28 @@ public final class AppEnvironment: ObservableObject {
         }
     }
     @Published public var launchAtLogin: Bool = false
+
+    /// When on, the menu bar item cycles CPU → GPU → Memory → Storage → Network every 2 seconds.
+    @Published public var rotateMenuBarMetrics: Bool = true {
+        didSet {
+            try? settingsRepo.setBool(key: "menubar_rotate", value: rotateMenuBarMetrics)
+            restartRotation()
+        }
+    }
+    /// The metric currently shown by the rotation.
+    @Published public private(set) var rotatingMetric: MenuBarMetric = .cpu
+    /// Seconds between rotation steps.
+    public static let menuBarRotationInterval: TimeInterval = 2.0
+
+    /// The metric the menu bar label should display right now.
+    public var displayedMenuBarMetric: MenuBarMetric {
+        rotateMenuBarMetrics ? rotatingMetric : selectedMenuBarMetric
+    }
+
+    /// User-initiated internet speed test shown in the menu bar popover.
+    public let speedTest = SpeedTestService()
+
+    private var rotationTimer: Timer?
     @Published public var searchQuery: String = ""
     @Published public var selectedProcessPID: Int32? = nil
     @Published public var isCommandPalettePresented: Bool = false
@@ -64,6 +86,7 @@ public final class AppEnvironment: ObservableObject {
     @Published public var selectedMenuBarMetric: MenuBarMetric = .cpu {
         didSet {
             try? settingsRepo.set(key: "menubar_selected_metric", value: selectedMenuBarMetric.rawValue)
+            if rotateMenuBarMetrics { restartRotation() }
         }
     }
 
@@ -135,6 +158,7 @@ public final class AppEnvironment: ObservableObject {
             // Load saved settings
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
             self.hideDockIconWhenClosed = sRepo.getBool(key: "hide_dock_when_closed", default: true)
+            self.rotateMenuBarMetrics = sRepo.getBool(key: "menubar_rotate", default: true)
 
             // First launch: register as a login item so the menu bar widget is
             // available after every restart. Users can switch it off in Settings.
@@ -147,9 +171,28 @@ public final class AppEnvironment: ObservableObject {
             self.selectedMenuBarMetric = MenuBarMetric(rawValue: savedMetric) ?? .cpu
 
             reloadCapabilities()
+            restartRotation()
         } catch {
             fatalError("Failed to initialize TaskManager AppEnvironment: \(error)")
         }
+    }
+
+    private func restartRotation() {
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+        guard rotateMenuBarMetrics else { return }
+        rotatingMetric = selectedMenuBarMetric
+        let timer = Timer(timeInterval: Self.menuBarRotationInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let all = MenuBarMetric.allCases
+                let idx = all.firstIndex(of: self.rotatingMetric) ?? 0
+                self.rotatingMetric = all[(idx + 1) % all.count]
+            }
+        }
+        // .common mode keeps the rotation running while menus are open or the user scrolls.
+        RunLoop.main.add(timer, forMode: .common)
+        rotationTimer = timer
     }
 
     public func reloadCapabilities() {

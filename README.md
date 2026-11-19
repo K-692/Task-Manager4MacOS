@@ -6,12 +6,12 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.1.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.1.0-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.2.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.2.0-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
 [![Storage](https://img.shields.io/badge/Telemetry-100%25%20In--Memory%20(Zero%20Disk%20I%2FO)-success?style=for-the-badge)](#-privacy--offline-guarantee)
-[![Privacy](https://img.shields.io/badge/Privacy-100%25%20Offline%20%26%20Zero%20Telemetry-emerald?style=for-the-badge)](#-privacy--offline-guarantee)
+[![Privacy](https://img.shields.io/badge/Privacy-Zero%20Telemetry-emerald?style=for-the-badge)](#-privacy--offline-guarantee)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <p align="center">
@@ -43,7 +43,7 @@
 - **Command-Center Dashboard:** On large windows all 5 core performance graphs (CPU, GPU, Memory, Disk, Network) fill one viewport with zero scrolling; on smaller windows they become a scrollable card grid.
 - **Dedicated Hardware Diagnostic Tabs:** Clicking any component in the sidebar opens an in-depth diagnostic tab exclusively detailing that component's microarchitecture, pipelines, and top processes.
 - **Live Sidebar Sparklines:** Real-time mini-graphs rendered directly in the sidebar navigation in strict order: **CPU $\rightarrow$ GPU $\rightarrow$ Memory $\rightarrow$ Disk $\rightarrow$ Network**.
-- **Real-Time 1-Second Mac Menu Bar Ticker:** The native macOS menu bar status extra streams live telemetry (CPU, GPU, Memory, Disk, or Network) every second in real time.
+- **Rotating Menu Bar Ticker + Speed Test:** The menu bar item cycles CPU, GPU, Memory, Storage and Network every 2 seconds (icon + value), and its popup includes a one-click internet speed test.
 - **True GPU Visualization:** Real-time GPU load percentage, renderer utilization, tiler utilization, and allocated/in-use VRAM directly from Apple Silicon & discrete GPUs.
 - **Memory-First Process Sorting:** Processes default-sorted by physical resident memory footprint for instant leak detection, with instant "End Task" process control.
 - **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear. No SQLite metric rollups $>60$ seconds.
@@ -62,12 +62,12 @@
 
 ---
 
-### 2. Always-On Menu Bar Monitor
+### 2. Always-On Menu Bar Monitor & Speed Test
 <p align="center">
   <img src="App_Screenshots/Menubar.png" alt="Menu bar popover" width="360" />
 </p>
 
-*The menu bar item streams your chosen metric every second. Its popover shows sparklines for every component, battery status, and the top processes, plus one-click access to the dashboard, Settings, or Quit. It stays running after the window is closed.*
+*The menu bar item rotates through CPU, GPU, Memory, Storage and Network every 2 seconds, showing just the component icon and its live value (or pins one metric if you turn rotation off). Its popup shows sparklines for every component, battery status, the top processes, a one-click **internet speed test** (download, upload, ping, jitter), and quick access to the dashboard, Settings, or Quit. It keeps running after the window is closed.*
 
 ---
 
@@ -146,7 +146,8 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 ### 4. 🍎 Always-On Menu Bar Utility
 - **Never Quits on Close:** Closing the main window leaves Task Manager running in the menu bar. The Dock icon hides automatically while the window is closed (toggle in Settings) and returns when you reopen it from the menu bar, Spotlight, or Finder. Only **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>, or the power button in the popover) exits the app.
 - **Starts with your Mac:** Launch at login is enabled on first run so the widget is always available after a restart. You can turn it off in Settings.
-- **Live Status Bar Label:** The macOS top menu bar item displays user-selected real-time hardware telemetry updated continuously every 1 second (e.g. `[CPU icon] 18%` or `[GPU icon] 41%`).
+- **Rotating Status Bar Label:** Every 2 seconds the menu bar item cycles **CPU → GPU → Memory → Storage → Network**, showing only the component's icon and its live value (no text labels). Switch rotation off in Settings to pin one metric; picking a metric while rotation is on makes the cycle start there.
+- **Internet Speed Test:** Press **Run Speed Test** in the popup to measure download and upload (4 parallel streams, ~7 s and ~6 s), ping and jitter. A live Mbps gauge shows progress, and results stay in the popup until you run it again. It uses Cloudflare's public speed test servers (speed.cloudflare.com) and only runs when you press the button.
 - **Popup Hardware Monitor:** Clicking the menu bar item opens a compact HUD with live sparklines for CPU, GPU, Memory, Disk and Network, battery status and the top 3 processes. Click any row to jump to its detail page.
 - **Common Mode RunLoop:** Scheduling on `RunLoop.main` in `.common` mode guarantees uninterrupted 1-second updates during user mouse tracking and scrolling.
 
@@ -165,6 +166,7 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 ### 7. ⚙️ Settings & Single-Selection Menu Bar Widget
 - **Responsive Layout:** Cards sit side by side on wide windows and stack on narrow ones; the page scrolls only when it has to.
+- **Menu Bar Rotation Toggle:** Turn the 2-second CPU → GPU → Memory → Storage → Network rotation on or off.
 - **Single-Selection Menu Bar Widget:** Select which hardware component (**CPU**, **GPU**, **Memory**, **Disk**, or **Network**) is visible on the macOS top status bar using single-selection radio chips, as only one icon and live telemetry metric can be displayed cleanly at a time.
 - **Live Menu Bar Preview:** Immediate preview of the active menu bar status item.
 - **Background & Startup:** Hide the Dock icon while the window is closed, and toggle launch at login.
@@ -181,7 +183,11 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.1.0-Universal.dmg (v1.1.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.1.0-Universal.dmg)**
+👉 **[Download TaskManager-1.2.0-Universal.dmg (v1.2.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.2.0-Universal.dmg)**
+
+#### What's new in v1.2.0
+- **Rotating menu bar metric:** the menu bar icon and value cycle CPU → GPU → Memory → Storage → Network every 2 seconds (icon + value only, no text label). Turn it off in **Settings → Menu Bar Widget** to pin a single metric.
+- **Internet speed test in the menu bar:** open the menu bar popup and press **Run Speed Test** to measure download, upload, ping and jitter, with results shown right in the popup.
 
 #### What's new in v1.1.0
 - Fully responsive window: sidebar auto-collapse, adaptive card grids, wrapping headers, and tables that hide columns on narrow widths. The minimum window size is now ~460×420 pt (was 960×640).
@@ -194,15 +200,15 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.1.0-Universal.dmg`](releases/TaskManager-1.1.0-Universal.dmg) |
-| **Version** | `1.1.0` |
+| **Package** | [`releases/TaskManager-1.2.0-Universal.dmg`](releases/TaskManager-1.2.0-Universal.dmg) |
+| **Version** | `1.2.0` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
-| **Package Size** | ~5.5 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `abd21b9983f05d87ceefad56039f94f22564293a5019a629f6fef1367551f943` |
+| **Package Size** | ~5.7 MB (Compressed Read-Only UDZO) |
+| **SHA-256 Checksum** | `e256dc7828f2152023cbed6e2dccabaf3a41c1ef5946262dc04d2d6c6daae5bc` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.1.0-Universal.dmg](releases/TaskManager-1.1.0-Universal.dmg)**.
+1. Download **[TaskManager-1.2.0-Universal.dmg](releases/TaskManager-1.2.0-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -228,7 +234,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.1.0-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.2.0-Universal.dmg` and updated in `releases/`.
 
 ---
 
@@ -280,7 +286,8 @@ Navigation shortcuts are also listed in the **Go** menu.
 
 ## 🔒 Privacy & Offline Guarantee
 
-- **100% Offline:** Zero network requests, zero telemetry beaconing, zero analytics SDKs.
+- **No Telemetry:** Zero telemetry beaconing and zero analytics SDKs. The app makes no network requests on its own.
+- **Speed Test on Demand Only:** The only network traffic is the internet speed test, and it runs only when you press **Run Speed Test**. It exchanges throw-away test data with Cloudflare's speed test servers and sends no personal or system information.
 - **Purely In-Memory Telemetry:** Telemetry history is strictly volatile (in-memory 60-sample ring buffers).
 - **User Space Execution:** Zero root permissions or kernel extensions required.
 

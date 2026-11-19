@@ -239,29 +239,21 @@ private struct MenuBarStatusLabel: View {
         let netOut = sampling.latestNetwork?.value?.totalBytesOutPerSecond ?? 0.0
         let netFormatted = formatCompactRate(netIn + netOut)
 
-        HStack(spacing: 3) {
-            switch env.selectedMenuBarMetric {
-            case .cpu:
-                Image(systemName: "cpu")
-                Text("\(cpu)%")
-                    .monospacedDigit()
-            case .gpu:
-                Image(systemName: "cube.transparent")
-                Text("\(gpu)%")
-                    .monospacedDigit()
-            case .memory:
-                Image(systemName: "memorychip")
-                Text("\(mem)%")
-                    .monospacedDigit()
-            case .disk:
-                Image(systemName: "internaldrive")
-                Text("\(disk)%")
-                    .monospacedDigit()
-            case .network:
-                Image(systemName: "network")
-                Text(netFormatted)
-                    .monospacedDigit()
+        let metric = env.displayedMenuBarMetric
+        let value: String = {
+            switch metric {
+            case .cpu: return "\(cpu)%"
+            case .gpu: return "\(gpu)%"
+            case .memory: return "\(mem)%"
+            case .disk: return "\(disk)%"
+            case .network: return netFormatted
             }
+        }()
+
+        HStack(spacing: 3) {
+            Image(systemName: metric.icon)
+            Text(value)
+                .monospacedDigit()
         }
     }
 
