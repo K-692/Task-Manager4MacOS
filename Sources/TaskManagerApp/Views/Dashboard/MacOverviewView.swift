@@ -32,7 +32,7 @@ public struct MacOverviewView: View {
                                 .font(.title3.bold())
                             Text("\(profile.modelIdentifier) • \(profile.architecture) • \(profile.osVersion) (Build \(profile.osBuild))")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                         }
 
                         Spacer()
@@ -40,7 +40,7 @@ public struct MacOverviewView: View {
                         VStack(alignment: .trailing, spacing: 2) {
                             Text("Uptime: \(profile.formattedUptime)")
                                 .font(.caption.monospaced())
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                             Text("\(profile.logicalCores) Cores • \(profile.formattedMemory) Unified RAM")
                                 .font(.caption2)
                                 .foregroundColor(.secondary.opacity(0.8))
@@ -73,7 +73,7 @@ public struct MacOverviewView: View {
 
                             Text("\(profile.logicalCores) logical cores • \(String(format: "%.1f%%", cpu?.userPercent ?? 0)) user / \(String(format: "%.1f%%", cpu?.systemPercent ?? 0)) sys")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                         }
                     }
 
@@ -104,7 +104,7 @@ public struct MacOverviewView: View {
 
                             Text("Pressure: \(mem?.pressureLevel ?? "Normal") • Active + Wired + Compressed")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                         }
                     }
 
@@ -137,7 +137,7 @@ public struct MacOverviewView: View {
 
                             Text("\(storage?.name ?? "Macintosh HD") (\(storage?.fileSystemType ?? "APFS")) of \(storage?.formattedTotal ?? "")")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                         }
                     }
 
@@ -158,21 +158,21 @@ public struct MacOverviewView: View {
 
                                 Text("\(bat.powerSource) • \(bat.isCharging ? "Charging" : "On Battery")")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
 
                                 if let cycle = bat.cycleCount {
                                     Text("Cycle count: \(cycle) • Health: \(bat.condition ?? "Normal")")
                                         .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
+                                        .themedSecondary()
                                 }
                             } else {
                                 Text("No Internal Battery")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
 
                                 Text(sampling.latestBattery?.reason ?? "Desktop Mac configuration without internal battery.")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                             }
                         }
                     }
@@ -186,7 +186,7 @@ public struct MacOverviewView: View {
                                 Spacer()
                                 Text(net?.primaryInterfaceName ?? "en0")
                                     .font(.caption.monospaced())
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                             }
 
                             Text(formatRate(net?.totalBytesInPerSecond ?? 0))
@@ -200,7 +200,7 @@ public struct MacOverviewView: View {
 
                             Text("Down: \(formatRate(net?.totalBytesInPerSecond ?? 0)) • Up: \(formatRate(net?.totalBytesOutPerSecond ?? 0))")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                         }
                     }
 
@@ -213,7 +213,7 @@ public struct MacOverviewView: View {
                                 Spacer()
                                 Text("\(sampling.latestProcesses?.value?.count ?? 0) Active")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                             }
 
                             Text("\(sampling.latestProcesses?.value?.count ?? 0) Apps")
@@ -222,7 +222,7 @@ public struct MacOverviewView: View {
 
                             Text("Active: \(sampling.latestProcesses?.value?.first?.name ?? "Finder")")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
 
                             Text("Zero-privilege NSWorkspace application inventory")
                                 .font(.system(size: 10))

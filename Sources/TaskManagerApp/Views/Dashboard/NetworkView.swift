@@ -68,7 +68,7 @@ public struct NetworkView: View {
                 if showTotals { Text("Session In / Out").frame(width: 170, alignment: .trailing) }
             }
             .font(.system(size: 10, weight: .bold))
-            .foregroundColor(.secondary)
+            .themedSecondary()
             .padding(.bottom, 6)
 
             Divider()
@@ -108,7 +108,7 @@ public struct NetworkView: View {
                     if showTotals {
                         Text("\(formatBytes(iface.totalBytesIn)) / \(formatBytes(iface.totalBytesOut))")
                             .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .lineLimit(1)
                             .frame(width: 170, alignment: .trailing)
                     }

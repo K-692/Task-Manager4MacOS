@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.4.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.4.0-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.5.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.5.0-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -69,14 +69,14 @@
   <img src="App_Screenshots/Dashboard-Publication.png" alt="Dashboard in the Publication theme" width="100%" />
 </p>
 
-*The Publication theme strips the UI down to what a figure needs: white panels with thin rules, serif type, colour-blind-safe series colours, labelled time and unit axes, and only the reference markings you choose (shown here: mean, median, mean ± 1σ band, 80 % threshold and peak).*
+*The Publication theme strips the UI down to what a figure needs: white panels with thin rules, solid serif type, colour-blind-safe colours and labelled axes. Only the markings you choose are drawn (shown here: mean, median, linear trend, 80 % threshold, mean ± 1σ band, peak and minimum), each in its own publication colour. Values sit in the legend at the bottom right, so the plot stays clean.*
 
 #### Choose your markings
 <p align="center">
   <img src="App_Screenshots/Settings-Markings.png" alt="Publication markings settings with live preview" width="100%" />
 </p>
 
-*In **Settings → Publication Markings** you can toggle every marking and see a live preview. Presets: Minimal, Default, All. Hover any option for a description.*
+*In **Settings → Publication Markings** you can toggle every marking and see a live preview. Presets: Minimal, Default, All. **Value labels** chooses where values appear: **In legend** (clean plot) or **Inside graph**. Hover any option for a description.*
 
 #### Captured figures: title + graph only
 Press **Capture** on the dashboard and five separate figures (CPU, GPU, Memory, Storage, Network) are saved to a new folder on your Desktop. All five come from the same instant, use the current theme and exactly the markings you selected, and contain nothing but the title and the graph:
@@ -89,7 +89,7 @@ Press **Capture** on the dashboard and five separate figures (CPU, GPU, Memory, 
   <img src="App_Screenshots/Figure-CPU-Standard.png" alt="Captured CPU figure, standard theme" width="49%" />
 </p>
 
-*Top: Publication theme with panel labels (a)–(e). Bottom: Standard theme.*
+*Top: Publication theme with values in the legend at the bottom right. Bottom: Standard theme.*
 
 ---
 
@@ -191,7 +191,7 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
   - Colours apply **only to the menu bar icon**. Charts keep their normal theme colours.
 - **Never Quits on Close:** Closing the main window leaves Task Manager running in the menu bar. The Dock icon hides automatically while the window is closed (toggle in Settings) and returns when you reopen it from the menu bar, Spotlight, or Finder. Only **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>, or the power button in the popover) exits the app.
 - **Starts with your Mac:** Launch at login is enabled on first run so the widget is always available after a restart. You can turn it off in Settings.
-- **Rotating Status Bar Label:** Every 2 seconds the menu bar item cycles **CPU → GPU → Memory → Storage → Network**, showing only the component's icon and its live value (no text labels) centred in a fixed-width slot, so neighbouring menu bar icons never shift. Switch rotation off in Settings to pin one metric; picking a metric while rotation is on makes the cycle start there.
+- **Rotating Status Bar Label:** Exactly every 2 seconds (driven by a strict, drift-free timer that only redraws the menu bar item) the menu bar item cycles **CPU → GPU → Memory → Storage → Network**, showing only the component's icon and its live value (no text labels) centred in a fixed-width slot, so neighbouring menu bar icons never shift. Switch rotation off in Settings to pin one metric; picking a metric while rotation is on makes the cycle start there.
 - **Internet Speed Test:** Press **Run Speed Test** in the popup to measure download and upload (4 parallel streams, ~7 s and ~6 s), ping and jitter. A live Mbps gauge shows progress, and results stay in the popup until you run it again. It uses Cloudflare's public speed test servers (speed.cloudflare.com) and only runs when you press the button.
 - **Popup Hardware Monitor:** Clicking the menu bar item opens a compact HUD with live sparklines for CPU, GPU, Memory, Disk and Network, battery status and the top 3 processes. Click any row to jump to its detail page.
 - **Common Mode RunLoop:** Scheduling on `RunLoop.main` in `.common` mode guarantees uninterrupted 1-second updates during user mouse tracking and scrolling.
@@ -206,7 +206,7 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 ### 5b. 📄 Publication Theme & Figure Capture (for researchers)
 - **Two themes** in **Settings → Theme**:
   - **Standard:** the colourful app look (follows System / Light / Dark).
-  - **Publication:** minimal and paper-ready, always on a white background, with serif typography, Okabe–Ito colour-blind-safe colours and solid/dashed line styles that survive greyscale printing.
+  - **Publication:** minimal and paper-ready, always on a white background, with solid serif typography, solid black accents on buttons and controls, Okabe–Ito colour-blind-safe colours and solid/dashed line styles that survive greyscale printing.
 - **Publication markings** (**Settings → Publication Markings**, with a live preview and Minimal / Default / All presets):
 
   | Group | Options |
@@ -214,13 +214,15 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
   | **Reference lines** | Mean (dotted) · Median (dash-dot) · Linear trend (least-squares) · Moving average (2–30 samples) · Threshold line (5–100 %, % charts) |
   | **Markers** | Peak ▲ · Minimum ◆ · Latest ● · All data points · Value labels |
   | **Bands** | Mean ± 1σ · Min–max range |
-  | **Axes & layout** | Gridlines · Axis ticks · Axis titles (*Time (s)*, unit) · Plot frame · Legend / key · Smooth curves · Panel labels (a)–(e) |
+  | **Value labels** | **In legend** (default: clean plot, values listed in the legend) · **Inside graph** (values written next to each marking) · *Show values* on/off |
+  | **Axes & layout** | Gridlines · Axis ticks · Axis titles (*Time (s)*, unit) · Plot frame · Legend · Smooth curves |
 
-  The key explains every active marking with its real line style or symbol. On the small dashboard cards the key is hidden to save space. It appears on detail pages and in captured figures.
+  - **Legend:** always below the graph and right-aligned. It shows each marking with its real line style, band or symbol in its own colour, and its value when values go in the legend. Dashboard cards, detail pages and captures all use the same legend and the same value placement.
+  - **Marking colours** (Okabe–Ito, colour-blind safe): mean black, median reddish purple, linear trend bluish green, moving average sky blue, threshold vermillion, peak orange, minimum grey, bands grey. If a marking's colour would match the data line (e.g. the threshold on the vermillion GPU line), it switches to black automatically. On two-series charts (network) markings follow their series colour, and the legend lists the values for both (D = download, U = upload).
 - **Capture button** on the Performance Dashboard:
   - Saves **five separate PNG figures** (`1-CPU.png`, `2-GPU.png`, `3-Memory.png`, `4-Storage.png`, `5-Network.png`) to `~/Desktop/Task Manager Capture <date> at <time> (<theme>)/`.
   - All five are rendered from **one snapshot taken at the same instant**.
-  - Each figure contains **only the title and the graph** (no device details, statistics or captions), drawn with exactly the selected markings and the current theme, at 2880×1620 px.
+  - Each figure contains **only the title and the graph** (no panel letters, device details, statistics or captions). It is drawn with exactly the selected markings, value placement and theme, with the legend at the bottom right, at 2880×1620 px.
   - Network figures auto-scale to KB/s or MB/s and never extend below zero.
 - The first capture may trigger macOS's one-time **"access files in your Desktop folder"** prompt. Allow it so figures can be saved.
 
@@ -251,7 +253,15 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.4.0-Universal.dmg (v1.4.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.4.0-Universal.dmg)**
+👉 **[Download TaskManager-1.5.0-Universal.dmg (v1.5.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.5.0-Universal.dmg)**
+
+#### What's new in v1.5.0
+- **Value labels: in the legend or inside the graph:** a new **Value labels** setting. *In legend* (the default) keeps the plot clean: nothing is written inside the graph and each marking's value is listed in the legend. *Inside graph* writes the values next to the markings. Dashboard, detail pages and captures all follow it.
+- **Legend always bottom-right**, below the graph, wrapping onto extra lines if needed.
+- **Distinct publication colours per marking** (Okabe–Ito): mean black, median reddish purple, trend bluish green, moving average sky blue, threshold vermillion, peak orange, minimum grey. Any marking whose colour would match the data line switches automatically.
+- **No panel letters** on captured figures: just the title and the graph.
+- **Solid text in the Publication theme:** secondary labels, sidebar items, buttons and checkboxes use solid dark colours instead of faded grey.
+- **Strict 2-second menu bar rotation:** a dedicated drift-free timer that only redraws the menu bar item, so the rotation no longer lags.
 
 #### What's new in v1.4.0
 - **Choose your publication markings:** **Settings → Publication Markings** has 20 options with a live preview: mean, median, linear trend, moving average (2–30 samples), threshold line (5–100 %), peak ▲, minimum ◆, latest ●, all data points, value labels, mean ± 1σ band, min–max band, gridlines, axis ticks, axis titles, plot frame, legend/key, smooth curves and panel labels (a)–(e). Presets: Minimal, Default, All. They fit in four columns without scrolling.
@@ -285,15 +295,15 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.4.0-Universal.dmg`](releases/TaskManager-1.4.0-Universal.dmg) |
-| **Version** | `1.4.0` |
+| **Package** | [`releases/TaskManager-1.5.0-Universal.dmg`](releases/TaskManager-1.5.0-Universal.dmg) |
+| **Version** | `1.5.0` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
-| **Package Size** | ~6.2 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `0c6b004726713b82d0db1dbac62a36aef4becd78ececdaf1ad5ded2373173c1d` |
+| **Package Size** | ~6.3 MB (Compressed Read-Only UDZO) |
+| **SHA-256 Checksum** | `8d69733645ee028be4bf1981d4985cea4149c9921c9caf929a8ac6131d808a56` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.4.0-Universal.dmg](releases/TaskManager-1.4.0-Universal.dmg)**.
+1. Download **[TaskManager-1.5.0-Universal.dmg](releases/TaskManager-1.5.0-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -319,7 +329,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.4.0-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.5.0-Universal.dmg` and updated in `releases/`.
 
 ---
 

@@ -23,7 +23,7 @@ public struct BatteryView: View {
                             .font(.system(size: 26, weight: .bold))
                         Text("Real-time battery level, power source, and health telemetry via IOKit.")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                     }
                     Spacer()
                     StatusBadge(status: batterySample?.status ?? .notPresent)
@@ -62,12 +62,12 @@ public struct BatteryView: View {
 
                                 Text("Current Power Source: \(bat.powerSource)")
                                     .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
 
                                 if let time = bat.timeRemainingMinutes {
                                     Text("\(time / 60)h \(time % 60)m remaining")
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .themedSecondary()
                                 }
                             }
 
@@ -82,7 +82,7 @@ public struct BatteryView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Cycle Count")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                                 Text(bat.cycleCount != nil ? "\(bat.cycleCount!)" : "Not exposed by OS")
                                     .font(.title3.bold())
                                     .foregroundColor(.primary)
@@ -94,7 +94,7 @@ public struct BatteryView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Condition")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                                 Text(bat.condition ?? "Normal")
                                     .font(.title3.bold())
                                     .foregroundColor(.emerald)

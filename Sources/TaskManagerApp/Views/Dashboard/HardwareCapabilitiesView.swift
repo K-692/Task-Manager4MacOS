@@ -36,7 +36,7 @@ public struct HardwareCapabilitiesView: View {
                             .font(.system(size: 26, weight: .bold))
                         Text("Truthful runtime capability discovery across Apple Silicon and Intel Macs.")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                     }
                     Spacer()
                     Button(action: {
@@ -54,14 +54,14 @@ public struct HardwareCapabilitiesView: View {
                     VStack(spacing: 8) {
                         HStack {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                             TextField("Search capability or source API...", text: $searchQuery)
                                 .textFieldStyle(.plain)
 
                             if !searchQuery.isEmpty {
                                 Button(action: { searchQuery = "" }) {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
+                                        .themedSecondary()
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -115,7 +115,7 @@ public struct HardwareCapabilitiesView: View {
                             Text("Source & Provenance").font(.caption.bold()).frame(width: 180, alignment: .trailing)
                         }
                         .padding(.vertical, 8)
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
 
                         Divider()
 
@@ -131,7 +131,7 @@ public struct HardwareCapabilitiesView: View {
                                                 .font(.system(size: 13, weight: .semibold))
                                             Text(record.category.displayName)
                                                 .font(.caption2)
-                                                .foregroundColor(.secondary)
+                                                .themedSecondary()
                                         }
                                     }
                                     .frame(width: 240, alignment: .leading)
@@ -154,7 +154,7 @@ public struct HardwareCapabilitiesView: View {
 
                                     Text(record.source)
                                         .font(.caption.monospaced())
-                                        .foregroundColor(.secondary)
+                                        .themedSecondary()
                                         .frame(width: 180, alignment: .trailing)
                                 }
 
@@ -162,10 +162,10 @@ public struct HardwareCapabilitiesView: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "info.circle")
                                             .font(.system(size: 10))
-                                            .foregroundColor(.secondary)
+                                            .themedSecondary()
                                         Text(explanation)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .themedSecondary()
                                     }
                                     .padding(.leading, 24)
                                     .padding(.top, 2)

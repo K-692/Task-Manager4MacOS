@@ -129,7 +129,7 @@ public struct PerformanceView: View {
                         .font(.system(size: 12, weight: .semibold))
                     Text(result.folder.lastPathComponent)
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -255,7 +255,7 @@ public struct PerformanceView: View {
                                 .lineLimit(1)
                             Text(subtitle)
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                         }
@@ -272,13 +272,12 @@ public struct PerformanceView: View {
                     }
 
                     chart()
-                        .environment(\.showsMarkingsKey, false)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     HStack(spacing: 6) {
                         Text(secondaryMetric)
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Spacer(minLength: 4)
@@ -325,7 +324,7 @@ public struct PerformanceView: View {
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                 Text(env.deviceProfile.marketingName)
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .lineLimit(1)
             }
         }
@@ -365,7 +364,7 @@ public struct PerformanceView: View {
         HStack(spacing: 4) {
             Text(label)
                 .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.secondary)
+                .themedSecondary()
             Text(val)
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundColor(color)

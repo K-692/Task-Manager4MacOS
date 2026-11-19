@@ -100,11 +100,7 @@ struct TelemetryFigureView: View {
         .environment(\.colorScheme, pub ? .light : colorScheme)
     }
 
-    private var title: String {
-        guard theme.isPublication && marks.panelLabels else { return kind.figureTitle }
-        let letter = Character(UnicodeScalar(UInt8(97 + panelIndex)))
-        return "(\(letter)) \(kind.figureTitle)"
-    }
+    private var title: String { kind.figureTitle }
 
     @ViewBuilder
     private var chart: some View {

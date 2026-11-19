@@ -87,7 +87,7 @@ public struct StorageView: View {
                         }
                         Text(vol.mountPath)
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
@@ -101,7 +101,7 @@ public struct StorageView: View {
                             .lineLimit(1)
                         Text("of \(vol.formattedTotal)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .lineLimit(1)
                     }
                     .fixedSize()
@@ -120,12 +120,12 @@ public struct StorageView: View {
                 HStack {
                     Text("\(vol.formattedUsed) used (\(String(format: "%.1f%%", vol.usagePercentage)))")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                         .lineLimit(1)
                     Spacer(minLength: 4)
                     Text(vol.fileSystemType)
                         .font(.caption2.monospaced())
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                         .lineLimit(1)
                 }
             }

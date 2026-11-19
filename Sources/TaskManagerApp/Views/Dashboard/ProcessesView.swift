@@ -88,10 +88,10 @@ public struct ProcessesView: View {
                 headerButton("CPU", key: "cpu").frame(width: 64, alignment: .trailing)
                 headerButton("Memory", key: "memory").frame(width: 84, alignment: .trailing)
                 if showArch {
-                    Text("Architecture").font(.caption.bold()).foregroundColor(.secondary).frame(width: 104, alignment: .center)
+                    Text("Architecture").font(.caption.bold()).themedSecondary().frame(width: 104, alignment: .center)
                 }
                 if showStatus {
-                    Text("Status").font(.caption.bold()).foregroundColor(.secondary).frame(width: 84, alignment: .trailing)
+                    Text("Status").font(.caption.bold()).themedSecondary().frame(width: 84, alignment: .trailing)
                 }
             }
             .padding(.horizontal, pad + 4)
@@ -127,7 +127,7 @@ public struct ProcessesView: View {
                                         if let bundle = proc.bundleIdentifier {
                                             Text(bundle)
                                                 .font(.system(size: 10))
-                                                .foregroundColor(.secondary)
+                                                .themedSecondary()
                                                 .lineLimit(1)
                                                 .truncationMode(.middle)
                                         }
@@ -138,7 +138,7 @@ public struct ProcessesView: View {
                                 if showPID {
                                     Text("\(proc.pid)")
                                         .font(.caption.monospaced())
-                                        .foregroundColor(.secondary)
+                                        .themedSecondary()
                                         .frame(width: 60, alignment: .trailing)
                                 }
 
@@ -151,7 +151,7 @@ public struct ProcessesView: View {
 
                                 Text(proc.formattedMemory)
                                     .font(.caption.monospaced())
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                                     .lineLimit(1)
                                     .frame(width: 84, alignment: .trailing)
 
@@ -227,7 +227,7 @@ public struct ProcessesView: View {
                     .font(.system(size: layoutClass == .compact ? 18 : 22, weight: .bold, design: .rounded))
                 Text("\(all.count) running • \(all.filter { $0.isActive }.count) frontmost")
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .lineLimit(1)
             }
         }
@@ -261,14 +261,14 @@ public struct ProcessesView: View {
     private var searchField: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
+                .themedSecondary()
             TextField("Filter by name, bundle ID, or PID…", text: $filterQuery)
                 .textFieldStyle(.plain)
 
             if !filterQuery.isEmpty {
                 Button(action: { filterQuery = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                 }
                 .buttonStyle(.plain)
             }

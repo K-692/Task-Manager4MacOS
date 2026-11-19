@@ -67,6 +67,8 @@ public struct MainLayoutView: View {
             }
         }
         .environment(\.visualTheme, env.visualTheme)
+        // Publication theme: solid black accents for buttons, selections and controls.
+        .tint(env.visualTheme.isPublication ? PublicationPalette.text : nil)
         .environment(\.publicationMarkings, env.publicationMarkings)
         .environment(\.sampleInterval, env.samplingCoordinator.samplingInterval)
         .animation(.easeOut(duration: 0.15), value: env.isCommandPalettePresented)
@@ -100,6 +102,7 @@ public struct MainLayoutView: View {
 
 /// Standalone reactive sidebar view observing SamplingCoordinator directly for 60fps telemetry.
 private struct SidebarContentView: View {
+    @Environment(\.visualTheme) private var theme
     @ObservedObject var sampling: SamplingCoordinator
     let deviceProfile: DeviceProfile
     @Binding var selectedDestination: AppDestination
@@ -127,7 +130,7 @@ private struct SidebarContentView: View {
                             .font(.system(size: 14, weight: .bold))
                         Text(deviceProfile.cpuName)
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .lineLimit(1)
                     }
                 }
@@ -168,7 +171,7 @@ private struct SidebarContentView: View {
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 1)
                                     .background(Color.primary.opacity(0.08))
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                                     .clipShape(Capsule())
                             }
                         }
@@ -181,13 +184,13 @@ private struct SidebarContentView: View {
                 NavigationLink(value: AppDestination.startupApps) {
                     Label("Startup Apps", systemImage: "bolt.fill")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.amber)
+                        .foregroundColor(theme.isPublication ? PublicationPalette.text : .amber)
                 }
 
                 NavigationLink(value: AppDestination.settings) {
                     Label("Settings", systemImage: "gearshape")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                 }
             }
 

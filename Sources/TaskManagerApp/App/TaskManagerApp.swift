@@ -194,7 +194,7 @@ struct TaskManagerApp: App {
                 .preferredColorScheme(standardColorScheme)
                 .background(WindowOpenerInstaller())
         } label: {
-            MenuBarStatusLabel(env: env, sampling: env.samplingCoordinator)
+            MenuBarStatusLabel(env: env, sampling: env.samplingCoordinator, rotation: env.rotation)
         }
         .menuBarExtraStyle(.window)
     }
@@ -245,6 +245,7 @@ struct WindowOpenerInstaller: View {
 private struct MenuBarStatusLabel: View {
     @ObservedObject var env: AppEnvironment
     @ObservedObject var sampling: SamplingCoordinator
+    @ObservedObject var rotation: MenuBarRotation
 
     var body: some View {
         let cpu = Int(sampling.latestCPU?.value?.totalUsagePercent ?? 0.0)

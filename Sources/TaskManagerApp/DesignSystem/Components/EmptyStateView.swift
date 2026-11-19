@@ -35,7 +35,7 @@ public struct EmptyStateView: View {
 
             Text(message)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .themedSecondary()
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 320)
 
