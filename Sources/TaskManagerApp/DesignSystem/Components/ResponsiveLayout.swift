@@ -184,7 +184,20 @@ public struct IconBadge: View {
         self.size = size
     }
 
+    @Environment(\.visualTheme) private var theme
+
     public var body: some View {
+        if theme.isPublication {
+            Image(systemName: systemName)
+                .font(.system(size: size * 0.5, weight: .regular))
+                .foregroundStyle(PublicationPalette.text)
+                .frame(width: size, height: size)
+        } else {
+            standard
+        }
+    }
+
+    private var standard: some View {
         Image(systemName: systemName)
             .font(.system(size: size * 0.46, weight: .semibold))
             .foregroundStyle(.white)

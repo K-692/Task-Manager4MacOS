@@ -48,6 +48,10 @@ public final class AppEnvironment: ObservableObject {
     @Published public var capabilities: [CapabilityRecord] = []
     @Published public var selectedDestination: AppDestination = .dashboard
     @Published public var appearanceMode: String = "system"
+    /// Standard (colorful) or Publication (paper-ready) look.
+    @Published public var visualTheme: VisualTheme = .standard {
+        didSet { try? settingsRepo.set(key: "visual_theme", value: visualTheme.rawValue) }
+    }
     /// The menu bar widget is always on; this controls whether the Dock icon
     /// disappears while the main window is closed.
     @Published public var hideDockIconWhenClosed: Bool = true {
@@ -157,6 +161,7 @@ public final class AppEnvironment: ObservableObject {
 
             // Load saved settings
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
+            self.visualTheme = VisualTheme(rawValue: sRepo.getString(key: "visual_theme", default: "standard")) ?? .standard
             self.hideDockIconWhenClosed = sRepo.getBool(key: "hide_dock_when_closed", default: true)
             self.rotateMenuBarMetrics = sRepo.getBool(key: "menubar_rotate", default: true)
 

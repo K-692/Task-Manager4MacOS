@@ -66,6 +66,8 @@ public struct MainLayoutView: View {
                     .transition(.scale(scale: 0.95).combined(with: .opacity))
             }
         }
+        .environment(\.visualTheme, env.visualTheme)
+        .environment(\.sampleInterval, env.samplingCoordinator.samplingInterval)
         .animation(.easeOut(duration: 0.15), value: env.isCommandPalettePresented)
         .animation(.easeInOut(duration: 0.15), value: env.selectedDestination)
     }
@@ -291,7 +293,7 @@ private struct SidebarContentView: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.emerald)
                                 .frame(width: 14)
-                            Text("Disk")
+                            Text("Storage")
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .frame(minWidth: 64, alignment: .leading)
@@ -392,8 +394,17 @@ private struct SidebarContentView: View {
 /// Soft gradient backdrop behind detail pages.
 private struct DetailBackground: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.visualTheme) private var theme
 
     var body: some View {
+        if theme.isPublication {
+            Color.white.ignoresSafeArea()
+        } else {
+            gradient
+        }
+    }
+
+    private var gradient: some View {
         ZStack {
             Color(nsColor: .windowBackgroundColor)
             LinearGradient(
