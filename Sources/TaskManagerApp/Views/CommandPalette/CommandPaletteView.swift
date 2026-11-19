@@ -26,7 +26,7 @@ public struct CommandPaletteView: View {
             // Search Input Header
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .font(.system(size: 16))
 
                 TextField("Type a command or search processes (e.g. Safari, GPU, CPU)...", text: $query)
@@ -37,7 +37,7 @@ public struct CommandPaletteView: View {
                 if !query.isEmpty {
                     Button(action: { query = "" }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                     }
                     .buttonStyle(.plain)
                 }
@@ -62,7 +62,7 @@ public struct CommandPaletteView: View {
                         // Navigation Shortcuts
                         Text("Navigation")
                             .font(.caption2.bold())
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .padding(.horizontal, 14)
                             .padding(.top, 8)
 
@@ -75,12 +75,12 @@ public struct CommandPaletteView: View {
                         if matchingProcesses.isEmpty {
                             Text("No processes found matching \"\(query)\".")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                                 .padding(14)
                         } else {
                             Text("Processes (\(matchingProcesses.count))")
                                 .font(.caption2.bold())
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                                 .padding(.horizontal, 14)
                                 .padding(.top, 8)
 
@@ -95,7 +95,7 @@ public struct CommandPaletteView: View {
                                                 .font(.system(size: 13, weight: .medium))
                                             Text("PID: \(proc.pid) • \(proc.formattedMemory) • \(proc.architecture)")
                                                 .font(.caption2)
-                                                .foregroundColor(.secondary)
+                                                .themedSecondary()
                                         }
                                     }
                                     Spacer()

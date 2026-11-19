@@ -32,7 +32,7 @@ public struct StartupAppsView: View {
                                     .font(.system(size: 14, weight: .semibold))
                                 Text("com.k692.TaskManager • SMAppService")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .themedSecondary()
                             }
 
                             Spacer()
@@ -55,7 +55,7 @@ public struct StartupAppsView: View {
                         HStack {
                             Text("Startup Impact")
                                 .font(.caption.bold())
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                             Spacer()
                             Text("Low (< 0.2s)")
                                 .font(.caption.monospaced())
@@ -65,7 +65,7 @@ public struct StartupAppsView: View {
                         HStack {
                             Text("Status")
                                 .font(.caption.bold())
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                             Spacer()
                             Text(launchAtLogin ? "Enabled" : "Disabled")
                                 .font(.caption.bold())
@@ -86,7 +86,7 @@ public struct StartupAppsView: View {
 
                         Text("To manage third-party system-wide login items and background launch daemons, visit System Settings > General > Login Items.")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
 
                         Button(action: {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {

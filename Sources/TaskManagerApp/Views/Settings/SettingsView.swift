@@ -60,7 +60,7 @@ public struct SettingsView: View {
                      ? "Rotation starts from the metric selected below."
                      : "Choose the metric shown next to the Task Manager icon in the macOS menu bar.")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .fixedSize(horizontal: false, vertical: true)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
@@ -79,7 +79,7 @@ public struct SettingsView: View {
                 HStack(spacing: 8) {
                     Text("Preview")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
 
                     // Mimics the real menu bar background so the colour preview is accurate.
                     HStack(spacing: 4) {
@@ -147,11 +147,11 @@ public struct SettingsView: View {
                 SectionCard("Sample Rate", icon: "timer", tint: .amber, accessory: {
                     Text(formattedInterval(updateSpeed))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                 }) {
                     Text("Refresh rate for CPU, GPU, memory, disk and network monitors.")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 2) {
                         cadenceButton(label: "0.5s", tag: "Fast", interval: 0.5)
@@ -169,7 +169,7 @@ public struct SettingsView: View {
                          ? "The Publication theme always uses a white background."
                          : "Match macOS or force light or dark mode.")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 2) {
                         themeButton(label: "System", icon: "circle.lefthalf.filled", mode: "system")
@@ -190,7 +190,7 @@ public struct SettingsView: View {
             }) {
                 Text("Publication gives a minimal, paper-ready look for screenshots and figures: white background, serif text, colour-blind-safe lines and the markings you choose below. The dashboard's Capture button uses the current theme.")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .fixedSize(horizontal: false, vertical: true)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
                     ForEach(VisualTheme.allCases, id: \.self) { option in
@@ -218,7 +218,7 @@ public struct SettingsView: View {
                                 .font(.system(size: 13, weight: .bold))
                             Text("Version \(appVersion) • Native Swift • MIT License")
                                 .font(.system(size: 10))
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                                 .lineLimit(1)
                         }
                         .layoutPriority(1)
@@ -272,8 +272,8 @@ public struct SettingsView: View {
     }
 
     private var appVersion: String {
-        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.0"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "7"
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.5.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "8"
         return "\(short) (\(build))"
     }
 
@@ -323,26 +323,37 @@ public struct SettingsView: View {
                     markToggle("Minimum ◆", "Lowest value in the window", \.minimum)
                     markToggle("Latest ●", "Most recent sample", \.latest)
                     markToggle("Data points", "A dot on every sample", \.dataPoints)
-                    markToggle("Value labels", "Print numbers next to markings", \.valueLabels)
+                    markToggle("Show values", "Print each marking's value (in the legend or inside the graph)", \.valueLabels)
                 }
                 markingGroup("Bands") {
                     markToggle("Mean ± 1σ", "Shaded standard-deviation band", \.stdDevBand)
                     markToggle("Min–max range", "Shaded envelope of the data", \.rangeBand)
+                    Text("VALUE LABELS")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.6)
+                        .themedSecondary()
+                        .padding(.top, 6)
+                    Picker("", selection: binding(\.labelPlacement)) {
+                        ForEach(LabelPlacement.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.radioGroup)
+                    .labelsHidden()
+                    .font(.system(size: 11))
+                    .help("In legend: the graph stays clean and each marking's value is listed in the legend below it. Inside graph: values are written next to each marking.")
                 }
                 markingGroup("Axes & layout") {
                     markToggle("Gridlines", "Light major gridlines", \.gridlines)
                     markToggle("Axis ticks", "Tick marks on both axes", \.axisTicks)
                     markToggle("Axis titles", "Time (s) and unit labels", \.axisTitles)
                     markToggle("Plot frame", "Box around the plot area", \.plotFrame)
-                    markToggle("Legend / key", "Explains lines and markers", \.legend)
+                    markToggle("Legend", "Below the graph, right-aligned", \.legend)
                     markToggle("Smooth curves", "Off = straight segments between samples", \.smoothCurves)
-                    markToggle("Panel labels", "Prefix captured titles with (a)–(e)", \.panelLabels)
                 }
             }
 
             Text("Captured figures use exactly these settings.")
                 .font(.system(size: 10))
-                .foregroundColor(.secondary)
+                .themedSecondary()
         }
     }
 
@@ -379,7 +390,7 @@ public struct SettingsView: View {
             Text(title.uppercased())
                 .font(.system(size: 9, weight: .bold))
                 .tracking(0.6)
-                .foregroundColor(.secondary)
+                .themedSecondary()
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -413,7 +424,7 @@ public struct SettingsView: View {
                         .font(.system(size: 13, weight: .semibold))
                     Text(option.subtitle)
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                 }
                 Spacer(minLength: 0)
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
@@ -434,7 +445,7 @@ public struct SettingsView: View {
                     .font(.system(size: 12, weight: .medium))
                 Text(detail)
                     .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -542,7 +553,7 @@ public struct SettingsView: View {
         HStack(spacing: 4) {
             Text(label)
                 .font(.system(size: 10))
-                .foregroundColor(.secondary)
+                .themedSecondary()
                 .frame(width: 88, alignment: .leading)
             Text(value)
                 .font(.system(size: 10, design: .monospaced))

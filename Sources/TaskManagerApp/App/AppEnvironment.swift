@@ -92,19 +92,19 @@ public final class AppEnvironment: ObservableObject {
         }
     }
     /// The metric currently shown by the rotation.
-    @Published public private(set) var rotatingMetric: MenuBarMetric = .cpu
+    /// Strict 2-second rotation, kept separate so each step only redraws the menu bar item.
+    public let rotation = MenuBarRotation()
     /// Seconds between rotation steps.
     public static let menuBarRotationInterval: TimeInterval = 2.0
 
     /// The metric the menu bar label should display right now.
     public var displayedMenuBarMetric: MenuBarMetric {
-        rotateMenuBarMetrics ? rotatingMetric : selectedMenuBarMetric
+        rotateMenuBarMetrics ? rotation.current : selectedMenuBarMetric
     }
 
     /// User-initiated internet speed test shown in the menu bar popover.
     public let speedTest = SpeedTestService()
 
-    private var rotationTimer: Timer?
     @Published public var searchQuery: String = ""
     @Published public var selectedProcessPID: Int32? = nil
     @Published public var isCommandPalettePresented: Bool = false
@@ -222,21 +222,11 @@ public final class AppEnvironment: ObservableObject {
     }
 
     private func restartRotation() {
-        rotationTimer?.invalidate()
-        rotationTimer = nil
-        guard rotateMenuBarMetrics else { return }
-        rotatingMetric = selectedMenuBarMetric
-        let timer = Timer(timeInterval: Self.menuBarRotationInterval, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                let all = MenuBarMetric.allCases
-                let idx = all.firstIndex(of: self.rotatingMetric) ?? 0
-                self.rotatingMetric = all[(idx + 1) % all.count]
-            }
+        if rotateMenuBarMetrics {
+            rotation.start(from: selectedMenuBarMetric)
+        } else {
+            rotation.stop()
         }
-        // .common mode keeps the rotation running while menus are open or the user scrolls.
-        RunLoop.main.add(timer, forMode: .common)
-        rotationTimer = timer
     }
 
     public func reloadCapabilities() {

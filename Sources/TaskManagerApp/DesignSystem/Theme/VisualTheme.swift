@@ -133,6 +133,40 @@ public extension EnvironmentValues {
 
 // MARK: - Publication markings
 
+/// Where the numeric values of markings are shown.
+public enum LabelPlacement: String, Codable, CaseIterable, Sendable {
+    /// Values listed in the legend below the graph; nothing is written inside the plot.
+    case legend
+    /// Small labels inside the plot next to each marking.
+    case inside
+
+    public var title: String {
+        switch self {
+        case .legend: return "In legend"
+        case .inside: return "Inside graph"
+        }
+    }
+}
+
+/// Distinct publication colours (Okabe–Ito) for each marking, so every line or symbol
+/// can be identified from the legend alone.
+public enum MarkingColor {
+    public static let mean = PublicationPalette.black
+    public static let median = PublicationPalette.reddishPurple
+    public static let trend = PublicationPalette.bluishGreen
+    public static let movingAverage = PublicationPalette.skyBlue
+    public static let threshold = PublicationPalette.vermillion
+    public static let peak = PublicationPalette.orange
+    public static let minimum = Color(white: 0.42)
+    public static let latest = PublicationPalette.black
+    public static let band = Color(white: 0.45)
+
+    /// Avoids drawing a marking in the same colour as the data line it annotates.
+    public static func distinct(_ preferred: Color, from series: Color) -> Color {
+        preferred == series ? (preferred == PublicationPalette.black ? Color(white: 0.35) : PublicationPalette.black) : preferred
+    }
+}
+
 /// Which reference markings the Publication theme draws on charts (and captured figures).
 public struct PublicationMarkings: Codable, Equatable, Sendable {
     // Reference lines
@@ -159,18 +193,14 @@ public struct PublicationMarkings: Codable, Equatable, Sendable {
     public var legend = true
     public var valueLabels = true
     public var smoothCurves = false
-    public var panelLabels = false
+    /// Where marking values are written: in the legend below the graph (clean plot)
+    /// or as small labels inside the plot next to each marking.
+    public var labelPlacement: LabelPlacement = .legend
 
     public init() {}
 
     public static let standard = PublicationMarkings()
 
-    /// Used where only the series legend fits (small dashboard cards).
-    static var seriesOnly: PublicationMarkings {
-        var m = PublicationMarkings()
-        m.mean = false; m.peak = false
-        return m
-    }
 
     public static var minimal: PublicationMarkings {
         var m = PublicationMarkings()
@@ -188,7 +218,7 @@ public struct PublicationMarkings: Codable, Equatable, Sendable {
         m.peak = true; m.minimum = true; m.latest = true; m.dataPoints = true
         m.stdDevBand = true; m.rangeBand = true
         m.gridlines = true; m.plotFrame = true; m.axisTitles = true; m.axisTicks = true
-        m.legend = true; m.valueLabels = true; m.panelLabels = true
+        m.legend = true; m.valueLabels = true
         return m
     }
 
@@ -210,12 +240,8 @@ public struct PublicationMarkings: Codable, Equatable, Sendable {
         stdDevBand = v(.stdDevBand, d.stdDevBand); rangeBand = v(.rangeBand, d.rangeBand)
         gridlines = v(.gridlines, d.gridlines); plotFrame = v(.plotFrame, d.plotFrame); axisTitles = v(.axisTitles, d.axisTitles)
         axisTicks = v(.axisTicks, d.axisTicks); legend = v(.legend, d.legend); valueLabels = v(.valueLabels, d.valueLabels)
-        smoothCurves = v(.smoothCurves, d.smoothCurves); panelLabels = v(.panelLabels, d.panelLabels)
+        smoothCurves = v(.smoothCurves, d.smoothCurves); labelPlacement = v(.labelPlacement, d.labelPlacement)
     }
-}
-
-private struct ShowsMarkingsKeyKey: EnvironmentKey {
-    static let defaultValue = true
 }
 
 private struct PublicationMarkingsKey: EnvironmentKey {
@@ -223,12 +249,6 @@ private struct PublicationMarkingsKey: EnvironmentKey {
 }
 
 public extension EnvironmentValues {
-    /// Whether charts draw the key explaining markings (off on small dashboard cards).
-    var showsMarkingsKey: Bool {
-        get { self[ShowsMarkingsKeyKey.self] }
-        set { self[ShowsMarkingsKeyKey.self] = newValue }
-    }
-
     var publicationMarkings: PublicationMarkings {
         get { self[PublicationMarkingsKey.self] }
         set { self[PublicationMarkingsKey.self] = newValue }
@@ -298,3 +318,24 @@ public enum UsageColor {
     }
 }
 
+
+// MARK: - Theme-aware secondary text
+
+/// Secondary text: the system's soft grey in the Standard theme, a solid dark grey in the
+/// Publication theme so labels stay crisp on white.
+struct ThemedSecondaryText: ViewModifier {
+    @Environment(\.visualTheme) private var theme
+
+    func body(content: Content) -> some View {
+        content.foregroundColor(theme.isPublication ? PublicationPalette.publicationSecondary : .secondary)
+    }
+}
+
+public extension View {
+    func themedSecondary() -> some View { modifier(ThemedSecondaryText()) }
+}
+
+public extension PublicationPalette {
+    /// Solid (opaque) dark grey used for secondary text in the Publication theme.
+    static let publicationSecondary = Color(white: 0.22)
+}

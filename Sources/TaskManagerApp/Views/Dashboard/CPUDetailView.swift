@@ -80,7 +80,7 @@ struct UsageBarRow: View {
         HStack(spacing: 10) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .themedSecondary()
                 .frame(width: 64, alignment: .leading)
                 .lineLimit(1)
             GeometryReader { geo in

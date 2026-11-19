@@ -145,7 +145,7 @@ public struct DetailHeader: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text(subtitle)
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .themedSecondary()
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -166,7 +166,7 @@ public struct DetailHeader: View {
                     Text(metricLabel.uppercased())
                         .font(.system(size: 9, weight: .bold))
                         .tracking(0.6)
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                         .fixedSize()
                 }
             }
@@ -300,7 +300,7 @@ public struct SpecRow: View {
     private var labelText: some View {
         Text(label)
             .font(.system(size: 12))
-            .foregroundColor(.secondary)
+            .themedSecondary()
             .lineLimit(1)
             .fixedSize()
     }
@@ -392,7 +392,7 @@ public struct ChartTimeAxis: View {
     public var body: some View {
         HStack {
             Text("60s ago")
-                .foregroundColor(.secondary)
+                .themedSecondary()
             Spacer()
             HStack(spacing: 4) {
                 Circle().fill(tint).frame(width: 5, height: 5)
@@ -439,7 +439,7 @@ public struct TopProcessTable: View {
                 Text(valueTitle).frame(width: 86, alignment: .trailing)
             }
             .font(.system(size: 10, weight: .bold))
-            .foregroundColor(.secondary)
+            .themedSecondary()
 
             Divider()
 
@@ -448,7 +448,7 @@ public struct TopProcessTable: View {
                     if showPID {
                         Text("\(row.id)")
                             .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .frame(width: 54, alignment: .leading)
                     }
                     HStack(spacing: 6) {
@@ -464,7 +464,7 @@ public struct TopProcessTable: View {
                     if showArch {
                         Text(row.architecture)
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .themedSecondary()
                             .lineLimit(1)
                             .frame(width: 110, alignment: .trailing)
                     }
@@ -481,45 +481,60 @@ public struct TopProcessTable: View {
 }
 
 /// Wrapping layout: places children left-to-right and starts a new line when
-/// the row is full (like text wrapping).
+/// the row is full (like text wrapping). Rows can be left- or right-aligned.
 public struct FlowLayout: Layout {
     var spacing: CGFloat
     var lineSpacing: CGFloat
+    var alignment: HorizontalAlignment
 
-    public init(spacing: CGFloat = 6, lineSpacing: CGFloat = 6) {
+    public init(spacing: CGFloat = 6, lineSpacing: CGFloat = 6, alignment: HorizontalAlignment = .leading) {
         self.spacing = spacing
         self.lineSpacing = lineSpacing
+        self.alignment = alignment
+    }
+
+    /// Splits subviews into rows that fit `maxWidth`; returns indices, row widths and heights.
+    private func rows(_ subviews: Subviews, maxWidth: CGFloat) -> [(items: [Int], width: CGFloat, height: CGFloat)] {
+        var result: [(items: [Int], width: CGFloat, height: CGFloat)] = []
+        var current: [Int] = []
+        var x: CGFloat = 0, height: CGFloat = 0
+        for (i, view) in subviews.enumerated() {
+            let size = view.sizeThatFits(.unspecified)
+            if !current.isEmpty && x + spacing + size.width > maxWidth {
+                result.append((current, x, height))
+                current = []; x = 0; height = 0
+            }
+            x += (current.isEmpty ? 0 : spacing) + size.width
+            height = max(height, size.height)
+            current.append(i)
+        }
+        if !current.isEmpty { result.append((current, x, height)) }
+        return result
     }
 
     public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
-        var x: CGFloat = 0, y: CGFloat = 0, lineHeight: CGFloat = 0, widest: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x > 0 && x + size.width > maxWidth {
-                y += lineHeight + lineSpacing
-                x = 0
-                lineHeight = 0
-            }
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
-            widest = max(widest, x - spacing)
-        }
-        return CGSize(width: proposal.width ?? widest, height: y + lineHeight)
+        let r = rows(subviews, maxWidth: maxWidth)
+        let height = r.reduce(0) { $0 + $1.height } + lineSpacing * CGFloat(max(0, r.count - 1))
+        let widest = r.map(\.width).max() ?? 0
+        return CGSize(width: proposal.width ?? widest, height: height)
     }
 
     public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, lineHeight: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x > bounds.minX && x + size.width > bounds.maxX {
-                y += lineHeight + lineSpacing
-                x = bounds.minX
-                lineHeight = 0
+        var y = bounds.minY
+        for row in rows(subviews, maxWidth: bounds.width) {
+            var x: CGFloat
+            switch alignment {
+            case .trailing: x = bounds.maxX - row.width
+            case .center: x = bounds.minX + (bounds.width - row.width) / 2
+            default: x = bounds.minX
             }
-            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
+            for i in row.items {
+                let size = subviews[i].sizeThatFits(.unspecified)
+                subviews[i].place(at: CGPoint(x: x, y: y + (row.height - size.height) / 2), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + lineSpacing
         }
     }
 }

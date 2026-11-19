@@ -101,7 +101,6 @@ public struct TelemetryChart: View {
     @Environment(\.publicationMarkings) private var marks
     @Environment(\.layoutClass) private var layoutClass
     @Environment(\.sampleInterval) private var sampleInterval
-    @Environment(\.showsMarkingsKey) private var showsKey
 
     public init(series: [ChartSeries], yDomain: ClosedRange<Double>?, unit: String, scale: Double = 1, showLegend: Bool = false) {
         self.series = series
@@ -128,13 +127,13 @@ public struct TelemetryChart: View {
                     if m.rangeBand, let lo = st.minPoint, let hi = st.maxPoint {
                         RectangleMark(xStart: .value("Time (s)", -window), xEnd: .value("Time (s)", 0),
                                       yStart: .value(unit, lo.value), yEnd: .value(unit, hi.value))
-                            .foregroundStyle(markColor(st, single).opacity(0.06))
+                            .foregroundStyle(markColor(MarkingColor.band, st, single).opacity(0.08))
                     }
                     if m.stdDevBand {
                         RectangleMark(xStart: .value("Time (s)", -window), xEnd: .value("Time (s)", 0),
                                       yStart: .value(unit, max(0, st.mean - st.sd)),
                                       yEnd: .value(unit, isPercent ? min(100, st.mean + st.sd) : st.mean + st.sd))
-                            .foregroundStyle(markColor(st, single).opacity(0.12))
+                            .foregroundStyle(markColor(MarkingColor.band, st, single).opacity(0.16))
                     }
                 }
             }
@@ -167,72 +166,73 @@ public struct TelemetryChart: View {
             // Reference lines and point markers
             if pub {
                 ForEach(stats, id: \.name) { st in
+                    let primary = st.name == stats.first?.name
                     if m.movingAverage {
                         ForEach(st.movingAverage) { p in
                             LineMark(x: .value("Time (s)", p.seconds), y: .value(unit, p.value), series: .value("Series", "\(st.name) moving average"))
                                 .interpolationMethod(.linear)
-                                .foregroundStyle(markColor(st, single).opacity(0.85))
-                                .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [1, 2]))
+                                .foregroundStyle(markColor(MarkingColor.movingAverage, st, single))
+                                .lineStyle(StrokeStyle(lineWidth: 1.3, dash: [1, 2]))
                         }
                     }
                     if m.trendLine, st.points.count >= 2 {
                         LineMark(x: .value("Time (s)", st.points.first!.seconds), y: .value(unit, clampY(st.trendStart, isPercent)), series: .value("Series", "\(st.name) trend"))
-                            .foregroundStyle(markColor(st, single))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [8, 3, 2, 3]))
+                            .foregroundStyle(markColor(MarkingColor.trend, st, single))
+                            .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [8, 3, 2, 3]))
                         LineMark(x: .value("Time (s)", st.points.last!.seconds), y: .value(unit, clampY(st.trendEnd, isPercent)), series: .value("Series", "\(st.name) trend"))
-                            .foregroundStyle(markColor(st, single))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [8, 3, 2, 3]))
+                            .foregroundStyle(markColor(MarkingColor.trend, st, single))
+                            .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [8, 3, 2, 3]))
                     }
                     if m.mean {
                         RuleMark(y: .value("Mean", st.mean))
-                            .foregroundStyle(markColor(st, single).opacity(0.8))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                            .foregroundStyle(markColor(MarkingColor.mean, st, single))
+                            .lineStyle(StrokeStyle(lineWidth: 1.1, dash: [3, 3]))
                             .annotation(position: .top, alignment: .leading, spacing: 2) {
-                                label(st.name == stats.first?.name ? "mean \(Self.format(st.mean, unit: unit))" : "", m).padding(.leading, 4)
+                                inside(primary ? "mean \(Self.format(st.mean, unit: unit))" : "", m).padding(.leading, 4)
                             }
                     }
                     if m.median {
                         RuleMark(y: .value("Median", st.median))
-                            .foregroundStyle(markColor(st, single).opacity(0.8))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [6, 2, 1, 2]))
+                            .foregroundStyle(markColor(MarkingColor.median, st, single))
+                            .lineStyle(StrokeStyle(lineWidth: 1.1, dash: [6, 2, 1, 2]))
                             .annotation(position: .bottom, alignment: .leading, spacing: 2) {
-                                label(st.name == stats.first?.name ? "median \(Self.format(st.median, unit: unit))" : "", m).padding(.leading, 4)
+                                inside(primary ? "median \(Self.format(st.median, unit: unit))" : "", m).padding(.leading, 4)
                             }
                     }
                     if m.peak, let p = st.maxPoint, p.value > 0 {
                         PointMark(x: .value("Time (s)", p.seconds), y: .value(unit, p.value))
                             .symbol(.triangle)
-                            .symbolSize(40)
-                            .foregroundStyle(markColor(st, single))
+                            .symbolSize(44)
+                            .foregroundStyle(markColor(MarkingColor.peak, st, single))
                             .annotation(position: p.seconds < -window * 0.85 ? .topTrailing : (p.seconds > -window * 0.15 ? .topLeading : .top), spacing: 3) {
-                                label(single ? "peak \(Self.format(p.value, unit: unit))" : "\(st.name.lowercased()) peak \(Self.format(p.value, unit: unit))", m, bold: true)
+                                inside(single ? "peak \(Self.format(p.value, unit: unit))" : "\(st.name.lowercased()) peak \(Self.format(p.value, unit: unit))", m)
                             }
                     }
                     if m.minimum, let p = st.minPoint {
                         PointMark(x: .value("Time (s)", p.seconds), y: .value(unit, p.value))
                             .symbol(.diamond)
-                            .symbolSize(36)
-                            .foregroundStyle(markColor(st, single))
+                            .symbolSize(40)
+                            .foregroundStyle(markColor(MarkingColor.minimum, st, single))
                             .annotation(position: p.seconds < -window * 0.85 ? .bottomTrailing : (p.seconds > -window * 0.15 ? .bottomLeading : .bottom), spacing: 3) {
-                                label(st.name == stats.first?.name ? "min \(Self.format(p.value, unit: unit))" : "", m)
+                                inside(primary ? "min \(Self.format(p.value, unit: unit))" : "", m)
                             }
                     }
                     if m.latest, let p = st.last {
                         PointMark(x: .value("Time (s)", p.seconds), y: .value(unit, p.value))
                             .symbol(.circle)
-                            .symbolSize(36)
-                            .foregroundStyle(markColor(st, single))
+                            .symbolSize(40)
+                            .foregroundStyle(markColor(MarkingColor.latest, st, single))
                             .annotation(position: .topLeading, spacing: 2) {
-                                label(st.name == stats.first?.name ? "now \(Self.format(p.value, unit: unit))" : "", m)
+                                inside(primary ? "now \(Self.format(p.value, unit: unit))" : "", m)
                             }
                     }
                 }
                 if m.threshold, isPercent {
                     RuleMark(y: .value("Threshold", m.thresholdValue))
-                        .foregroundStyle(PublicationPalette.vermillion)
+                        .foregroundStyle(single ? markColor(MarkingColor.threshold, stats[0], true) : MarkingColor.threshold)
                         .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [10, 4]))
                         .annotation(position: .top, alignment: .trailing, spacing: 2) {
-                            label("threshold \(Int(m.thresholdValue))%", m)
+                            inside("threshold \(Int(m.thresholdValue))%", m)
                         }
                 }
             }
@@ -241,18 +241,20 @@ public struct TelemetryChart: View {
         .chartXScale(domain: -window...0)
         // Publication charts use the custom key below (real line styles) instead of Charts' dot legend.
         .chartLegend((!pub && showLegend) ? .visible : .hidden)
-        .chartLegend(position: .top, alignment: .trailing)
+        .chartLegend(position: .bottom, alignment: .trailing)
 
+        // Legend always sits below the graph, aligned to the right.
         return VStack(alignment: .trailing, spacing: 4) {
-            if pub && m.legend && (showsKey || series.count > 1) && (m.hasStatisticalMarks || series.count > 1) {
-                MarkingsKey(marks: showsKey ? m : .seriesOnly, isPercent: isPercent, series: series.count > 1 ? series : [])
-            }
             Group {
                 if pub {
                     publicationAxes(chart, window: window, m: m)
                 } else {
                     standardAxes(chart)
                 }
+            }
+            if pub && m.legend && (m.hasStatisticalMarks || series.count > 1) {
+                MarkingsKey(entries: legendEntries(stats: stats, m: m, single: single, isPercent: isPercent))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .frame(minHeight: 56, idealHeight: 180, maxHeight: .infinity)
@@ -263,18 +265,60 @@ public struct TelemetryChart: View {
         isPercent ? min(100, max(0, v)) : max(0, v)
     }
 
-    /// Single-series charts draw markings in black for contrast; multi-series use each series' colour.
-    private func markColor(_ st: SeriesStats, _ single: Bool) -> Color {
-        single ? PublicationPalette.black : st.color
+    /// Marking colour: its own publication colour on single-series charts (adjusted if it
+    /// would match the data line), the series colour on multi-series charts.
+    private func markColor(_ preferred: Color, _ st: SeriesStats, _ single: Bool) -> Color {
+        single ? MarkingColor.distinct(preferred, from: st.color) : st.color
     }
 
+    /// Text written inside the plot (only when labels are placed inside).
     @ViewBuilder
-    private func label(_ text: String, _ m: PublicationMarkings, bold: Bool = false) -> some View {
-        if m.valueLabels && !text.isEmpty {
+    private func inside(_ text: String, _ m: PublicationMarkings) -> some View {
+        if m.valueLabels && m.labelPlacement == .inside && !text.isEmpty {
             Text(text)
-                .font(.system(size: 9, weight: bold ? .semibold : .regular, design: .serif))
-                .foregroundColor(bold ? PublicationPalette.text : PublicationPalette.secondaryText)
+                .font(.system(size: 9, weight: .medium, design: .serif))
+                .foregroundColor(PublicationPalette.text)
         }
+    }
+
+    /// Legend entries: series, then each active marking with its colour/style and (when the
+    /// values go in the legend) its value.
+    private func legendEntries(stats: [SeriesStats], m: PublicationMarkings, single: Bool, isPercent: Bool) -> [LegendEntry] {
+        let withValues = m.valueLabels && m.labelPlacement == .legend
+        let neutral = PublicationPalette.text
+        func values(_ pick: (SeriesStats) -> Double?) -> String {
+            guard withValues else { return "" }
+            let parts: [String] = stats.compactMap { st in
+                guard let v = pick(st) else { return nil }
+                return single ? Self.format(v, unit: unit) : "\(st.name.prefix(1)) \(Self.format(v, unit: unit))"
+            }
+            return parts.isEmpty ? "" : " " + parts.joined(separator: ", ")
+        }
+        func color(_ preferred: Color) -> Color {
+            single ? markColor(preferred, stats[0], true) : neutral
+        }
+
+        var e: [LegendEntry] = []
+        if !single {
+            for s in series { e.append(.init(label: s.name, style: .line(dash: s.dashed ? [5, 3] : [], width: 2), color: s.color)) }
+        }
+        if m.mean { e.append(.init(label: "Mean" + values { $0.mean }, style: .line(dash: [3, 3], width: 1.3), color: color(MarkingColor.mean))) }
+        if m.median { e.append(.init(label: "Median" + values { $0.median }, style: .line(dash: [6, 2, 1, 2], width: 1.3), color: color(MarkingColor.median))) }
+        if m.trendLine { e.append(.init(label: "Linear trend", style: .line(dash: [8, 3, 2, 3], width: 1.3), color: color(MarkingColor.trend))) }
+        if m.movingAverage { e.append(.init(label: "Moving avg (\(m.movingAverageWindow))", style: .line(dash: [1, 2], width: 1.5), color: color(MarkingColor.movingAverage))) }
+        if m.threshold && isPercent {
+            e.append(.init(label: "Threshold" + (withValues ? " \(Int(m.thresholdValue))%" : ""), style: .line(dash: [10, 4], width: 1.3),
+                           color: single ? markColor(MarkingColor.threshold, stats[0], true) : MarkingColor.threshold))
+        }
+        if m.stdDevBand {
+            let sd = values { $0.sd }
+            e.append(.init(label: "Mean ± 1σ" + (sd.isEmpty ? "" : " (σ =\(sd))"), style: .band(opacity: 0.25), color: color(MarkingColor.band)))
+        }
+        if m.rangeBand { e.append(.init(label: "Min–max range", style: .band(opacity: 0.12), color: color(MarkingColor.band))) }
+        if m.peak { e.append(.init(label: "Peak" + values { $0.maxPoint?.value }, style: .symbol("triangle.fill"), color: color(MarkingColor.peak))) }
+        if m.minimum { e.append(.init(label: "Minimum" + values { $0.minPoint?.value }, style: .symbol("diamond.fill"), color: color(MarkingColor.minimum))) }
+        if m.latest { e.append(.init(label: "Latest" + values { $0.last?.value }, style: .symbol("circle.fill"), color: color(MarkingColor.latest))) }
+        return e
     }
 
     // MARK: Axes
@@ -406,58 +450,51 @@ public struct TelemetryChart: View {
     }
 }
 
-/// Compact key that explains each active marking with its actual line / symbol style.
+/// One legend row: a sample (line, band or symbol) in the marking's colour plus its text.
+struct LegendEntry: Identifiable {
+    enum Style {
+        case line(dash: [CGFloat], width: CGFloat)
+        case band(opacity: Double)
+        case symbol(String)
+    }
+    var id: String { label }
+    let label: String
+    let style: Style
+    let color: Color
+}
+
+/// Legend drawn below the graph (right-aligned), wrapping onto extra lines when needed.
 struct MarkingsKey: View {
-    let marks: PublicationMarkings
-    let isPercent: Bool
-    var series: [ChartSeries] = []
-    var publication = true
+    let entries: [LegendEntry]
 
     var body: some View {
-        FlowLayout(spacing: 12, lineSpacing: 4) {
-            ForEach(series) { s in
-                lineItem(s.name, dash: s.dashed ? [5, 3] : [], color: s.color, width: 2)
+        FlowLayout(spacing: 12, lineSpacing: 3, alignment: .trailing) {
+            ForEach(entries) { entry in
+                HStack(spacing: 4) {
+                    sample(entry)
+                    Text(entry.label)
+                        .font(.system(size: 9, design: .serif))
+                        .foregroundColor(PublicationPalette.text)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
             }
-            if marks.mean { lineItem("Mean", dash: [3, 3]) }
-            if marks.median { lineItem("Median", dash: [6, 2, 1, 2]) }
-            if marks.trendLine { lineItem("Linear trend", dash: [8, 3, 2, 3]) }
-            if marks.movingAverage { lineItem("Moving avg (\(marks.movingAverageWindow))", dash: [1, 2]) }
-            if marks.threshold && isPercent { lineItem("Threshold", dash: [10, 4], color: PublicationPalette.vermillion) }
-            if marks.stdDevBand { bandItem("Mean ± 1σ", opacity: 0.18) }
-            if marks.rangeBand { bandItem("Min–max range", opacity: 0.09) }
-            if marks.peak { symbolItem("Peak", "triangle.fill") }
-            if marks.minimum { symbolItem("Minimum", "diamond.fill") }
-            if marks.latest { symbolItem("Latest", "circle.fill") }
         }
+        .environment(\.layoutDirection, .leftToRight)
     }
 
-    private func lineItem(_ name: String, dash: [CGFloat], color: Color = PublicationPalette.black, width: CGFloat = 1.2) -> some View {
-        HStack(spacing: 4) {
+    @ViewBuilder
+    private func sample(_ entry: LegendEntry) -> some View {
+        switch entry.style {
+        case .line(let dash, let width):
             Path { p in p.move(to: CGPoint(x: 0, y: 4)); p.addLine(to: CGPoint(x: 20, y: 4)) }
-                .stroke(color, style: StrokeStyle(lineWidth: width, dash: dash))
+                .stroke(entry.color, style: StrokeStyle(lineWidth: width, dash: dash))
                 .frame(width: 20, height: 8)
-            text(name)
+        case .band(let opacity):
+            Rectangle().fill(entry.color.opacity(opacity)).frame(width: 16, height: 8)
+        case .symbol(let name):
+            Image(systemName: name).font(.system(size: 7)).foregroundColor(entry.color)
         }
-    }
-
-    private func bandItem(_ name: String, opacity: Double) -> some View {
-        HStack(spacing: 4) {
-            Rectangle().fill(PublicationPalette.black.opacity(opacity)).frame(width: 16, height: 8)
-            text(name)
-        }
-    }
-
-    private func symbolItem(_ name: String, _ symbol: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: symbol).font(.system(size: 7)).foregroundColor(PublicationPalette.black)
-            text(name)
-        }
-    }
-
-    private func text(_ s: String) -> some View {
-        Text(s)
-            .font(.system(size: 9, design: publication ? .serif : .default))
-            .foregroundColor(publication ? PublicationPalette.text : .secondary)
     }
 }
 

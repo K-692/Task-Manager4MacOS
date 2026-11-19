@@ -18,7 +18,7 @@ public struct AboutThisMacView: View {
                         .font(.system(size: 26, weight: .bold))
                     Text("Verified hardware specifications and system facts for this machine.")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .themedSecondary()
                 }
                 .padding(.horizontal, AppTheme.Spacing.md)
                 .padding(.top, AppTheme.Spacing.sm)
@@ -35,10 +35,10 @@ public struct AboutThisMacView: View {
                                 .font(.title2.bold())
                             Text("Model Identifier: \(profile.modelIdentifier)")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                             Text("Architecture: \(profile.architecture)")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .themedSecondary()
                         }
 
                         Spacer()
@@ -79,7 +79,7 @@ public struct AboutThisMacView: View {
         HStack {
             Text(title)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
+                .themedSecondary()
                 .frame(width: 180, alignment: .leading)
             Spacer()
             Text(value)
