@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.5.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.5.0-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.5.1-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.5.1-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -253,7 +253,10 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.5.0-Universal.dmg (v1.5.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.5.0-Universal.dmg)**
+👉 **[Download TaskManager-1.5.1-Universal.dmg (v1.5.1)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.5.1-Universal.dmg)**
+
+#### What's new in v1.5.1
+- **Gridlines now visible:** the **Gridlines** option in Publication Markings now draws light grey major gridlines on every chart and captured figure. Previously the plot area's white background covered them.
 
 #### What's new in v1.5.0
 - **Value labels: in the legend or inside the graph:** a new **Value labels** setting. *In legend* (the default) keeps the plot clean: nothing is written inside the graph and each marking's value is listed in the legend. *Inside graph* writes the values next to the markings. Dashboard, detail pages and captures all follow it.
@@ -295,15 +298,15 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.5.0-Universal.dmg`](releases/TaskManager-1.5.0-Universal.dmg) |
-| **Version** | `1.5.0` |
+| **Package** | [`releases/TaskManager-1.5.1-Universal.dmg`](releases/TaskManager-1.5.1-Universal.dmg) |
+| **Version** | `1.5.1` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
 | **Package Size** | ~6.3 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `8d69733645ee028be4bf1981d4985cea4149c9921c9caf929a8ac6131d808a56` |
+| **SHA-256 Checksum** | `eab9786a2847ba4366cbd8b9eec7a376ab6274a75b5eb01a8683cf04872d2b9d` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.5.0-Universal.dmg](releases/TaskManager-1.5.0-Universal.dmg)**.
+1. Download **[TaskManager-1.5.1-Universal.dmg](releases/TaskManager-1.5.1-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -329,7 +332,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.5.0-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.5.1-Universal.dmg` and updated in `releases/`.
 
 ---
 
