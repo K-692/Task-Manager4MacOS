@@ -35,7 +35,7 @@ public struct MenuBarContentView: View {
                         .lineLimit(1)
                 }
                 Spacer()
-                PillTag("LIVE", tint: .emerald)
+                PillTag(env.rotateMenuBarMetrics ? "ROTATING" : "LIVE", tint: .emerald)
             }
 
             // Metric rows
@@ -53,7 +53,7 @@ public struct MenuBarContentView: View {
                           detail: mem?.formattedUsed,
                           history: sampling.memoryHistory.values, maxVal: 100,
                           destination: .memory)
-                metricRow(icon: "internaldrive", title: "Disk", tint: .emerald,
+                metricRow(icon: "internaldrive", title: "Storage", tint: .emerald,
                           value: String(format: "%.0f%%", disk?.usagePercentage ?? 0),
                           detail: disk.map { "\($0.formattedAvailable) free" },
                           history: sampling.diskHistory.values, maxVal: 100,
@@ -104,6 +104,8 @@ public struct MenuBarContentView: View {
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.04)))
             }
+
+            SpeedTestCard(speedTest: env.speedTest)
 
             Divider()
 

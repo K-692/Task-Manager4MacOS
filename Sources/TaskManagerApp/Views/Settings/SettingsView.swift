@@ -21,7 +21,21 @@ public struct SettingsView: View {
             SectionCard("Menu Bar Widget", icon: "menubar.rectangle", tint: .indigo, accessory: {
                 PillTag("ALWAYS ON", tint: .emerald)
             }) {
-                Text("Choose the metric shown next to the Task Manager icon in the macOS menu bar.")
+                settingRow(
+                    title: "Rotate metrics every 2 seconds",
+                    detail: "Cycle CPU → GPU → Memory → Storage → Network in the menu bar. Turn off to always show the metric selected below."
+                ) {
+                    Toggle("", isOn: $env.rotateMenuBarMetrics)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+
+                Divider()
+
+                Text(env.rotateMenuBarMetrics
+                     ? "Rotation starts from the metric selected below."
+                     : "Choose the metric shown next to the Task Manager icon in the macOS menu bar.")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -45,9 +59,9 @@ public struct SettingsView: View {
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 4) {
-                        Image(systemName: env.selectedMenuBarMetric.icon)
+                        Image(systemName: env.displayedMenuBarMetric.icon)
                             .font(.system(size: 10, weight: .bold))
-                        Text(valueForMetric(env.selectedMenuBarMetric))
+                        Text(valueForMetric(env.displayedMenuBarMetric))
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     }
                     .padding(.horizontal, 8)
@@ -157,7 +171,7 @@ public struct SettingsView: View {
                         }
                         .layoutPriority(1)
                         Spacer(minLength: 4)
-                        PillTag("100% OFFLINE", tint: .emerald)
+                        PillTag("NO TELEMETRY", tint: .emerald)
                     }
 
                     Divider()
@@ -190,8 +204,8 @@ public struct SettingsView: View {
     }
 
     private var appVersion: String {
-        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.0"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2"
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "3"
         return "\(short) (\(build))"
     }
 
