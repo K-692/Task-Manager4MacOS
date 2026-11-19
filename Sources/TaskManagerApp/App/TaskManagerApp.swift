@@ -260,31 +260,41 @@ private struct MenuBarStatusLabel: View {
         }
     }
 
-    /// Fixed slot sizes (points). Wide enough for the longest value ("99.9M" / "100%").
-    private static let iconSlot: CGFloat = 18
-    private static let valueSlot: CGFloat = 40
-    private static let spacing: CGFloat = 4
+    private static let iconWidth: CGFloat = 16
+    private static let spacing: CGFloat = 3
     private static let height: CGFloat = 18
+    private static let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+
+    /// Width of the widest value the label can ever show, so the slot fits it exactly.
+    private static let maxValueWidth: CGFloat = {
+        let samples = ["100%", "88%", "99.9M", "999M", "999K", "0K"]
+        let attrs: [NSAttributedString.Key: Any] = [.font: valueFont]
+        return ceil(samples.map { ($0 as NSString).size(withAttributes: attrs).width }.max() ?? 36)
+    }()
+
+    /// Constant total width of the menu bar label.
+    private static let slotWidth: CGFloat = iconWidth + spacing + maxValueWidth
 
     @MainActor
     private static func renderLabel(icon: String, value: String) -> NSImage? {
+        // Icon + value hug each other and are centred in a constant-width slot,
+        // so the item never changes size and the spacing is balanced on both sides.
         let content = HStack(spacing: spacing) {
             Image(systemName: icon)
                 .font(.system(size: 13, weight: .medium))
-                .frame(width: iconSlot, height: height, alignment: .center)
+                .frame(width: iconWidth, height: height)
             Text(value)
-                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .font(Font(valueFont))
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: valueSlot, height: height, alignment: .leading)
+                .fixedSize()
         }
         .foregroundColor(.black)
-        .frame(width: iconSlot + spacing + valueSlot, height: height)
+        .frame(width: slotWidth, height: height, alignment: .center)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
-        image.size = NSSize(width: iconSlot + spacing + valueSlot, height: height)
+        image.size = NSSize(width: slotWidth, height: height)
         // Template images are tinted by macOS to match the light/dark menu bar.
         image.isTemplate = true
         return image
