@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.2.1-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.2.1-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.2.2-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.2.2-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -146,7 +146,7 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 ### 4. 🍎 Always-On Menu Bar Utility
 - **Never Quits on Close:** Closing the main window leaves Task Manager running in the menu bar. The Dock icon hides automatically while the window is closed (toggle in Settings) and returns when you reopen it from the menu bar, Spotlight, or Finder. Only **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>, or the power button in the popover) exits the app.
 - **Starts with your Mac:** Launch at login is enabled on first run so the widget is always available after a restart. You can turn it off in Settings.
-- **Rotating Status Bar Label:** Every 2 seconds the menu bar item cycles **CPU → GPU → Memory → Storage → Network**, showing only the component's icon and its live value (no text labels) in a fixed-width slot, so neighbouring menu bar icons never shift. Switch rotation off in Settings to pin one metric; picking a metric while rotation is on makes the cycle start there.
+- **Rotating Status Bar Label:** Every 2 seconds the menu bar item cycles **CPU → GPU → Memory → Storage → Network**, showing only the component's icon and its live value (no text labels) centred in a fixed-width slot, so neighbouring menu bar icons never shift. Switch rotation off in Settings to pin one metric; picking a metric while rotation is on makes the cycle start there.
 - **Internet Speed Test:** Press **Run Speed Test** in the popup to measure download and upload (4 parallel streams, ~7 s and ~6 s), ping and jitter. A live Mbps gauge shows progress, and results stay in the popup until you run it again. It uses Cloudflare's public speed test servers (speed.cloudflare.com) and only runs when you press the button.
 - **Popup Hardware Monitor:** Clicking the menu bar item opens a compact HUD with live sparklines for CPU, GPU, Memory, Disk and Network, battery status and the top 3 processes. Click any row to jump to its detail page.
 - **Common Mode RunLoop:** Scheduling on `RunLoop.main` in `.common` mode guarantees uninterrupted 1-second updates during user mouse tracking and scrolling.
@@ -183,7 +183,10 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.2.1-Universal.dmg (v1.2.1)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.2.1-Universal.dmg)**
+👉 **[Download TaskManager-1.2.2-Universal.dmg (v1.2.2)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.2.2-Universal.dmg)**
+
+#### What's new in v1.2.2
+- **Centered menu bar item:** the icon and value are now centred in a tightly sized fixed-width slot, so the spacing is even on both sides and the item still never changes size or pushes other menu bar icons.
 
 #### What's new in v1.2.1
 - **Fixed-width menu bar item:** the rotating metric now sits in a fixed-width slot, so other menu bar icons no longer shift as it cycles between CPU, GPU, Memory, Storage and Network.
@@ -203,15 +206,15 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.2.1-Universal.dmg`](releases/TaskManager-1.2.1-Universal.dmg) |
-| **Version** | `1.2.1` |
+| **Package** | [`releases/TaskManager-1.2.2-Universal.dmg`](releases/TaskManager-1.2.2-Universal.dmg) |
+| **Version** | `1.2.2` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
 | **Package Size** | ~5.7 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `695da4c741e7312da3a8da8406d2344ed000c4a394d0e2de495fc4364de7042f` |
+| **SHA-256 Checksum** | `04daba7b5dab508889b90ef610cb755690c2ff7c376347a1a02b7983dc854d76` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.2.1-Universal.dmg](releases/TaskManager-1.2.1-Universal.dmg)**.
+1. Download **[TaskManager-1.2.2-Universal.dmg](releases/TaskManager-1.2.2-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -237,7 +240,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.2.1-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.2.2-Universal.dmg` and updated in `releases/`.
 
 ---
 
