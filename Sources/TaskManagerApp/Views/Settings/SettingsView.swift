@@ -19,13 +19,36 @@ public struct SettingsView: View {
 
             // 1. Menu Bar Widget
             SectionCard("Menu Bar Widget", icon: "menubar.rectangle", tint: .indigo, accessory: {
-                PillTag("ALWAYS ON", tint: .emerald)
+                PillTag(env.showMenuBarIcon ? "ON" : "OFF", tint: env.showMenuBarIcon ? .emerald : .secondary)
             }) {
+                settingRow(
+                    title: "Show in menu bar",
+                    detail: "Show the live metric in the macOS menu bar. When off, Task Manager keeps running in the background and stays in the Dock so you can reopen it."
+                ) {
+                    Toggle("", isOn: $env.showMenuBarIcon)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 12) {
                 settingRow(
                     title: "Rotate metrics every 2 seconds",
                     detail: "Cycle CPU → GPU → Memory → Storage → Network in the menu bar. Turn off to always show the metric selected below."
                 ) {
                     Toggle("", isOn: $env.rotateMenuBarMetrics)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+
+                settingRow(
+                    title: "Colour by usage",
+                    detail: "Shade the icon and value continuously from green to red, brightened automatically for a dark or light menu bar. CPU, GPU, Memory, Storage: green at low use, red at high use. Network: green at 1 MB/s or more, red at 400 KB/s or less. Off: plain white (or black on a light menu bar)."
+                ) {
+                    Toggle("", isOn: $env.menuBarUsageColors)
                         .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
@@ -58,19 +81,24 @@ public struct SettingsView: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
 
+                    // Mimics the real menu bar background so the colour preview is accurate.
                     HStack(spacing: 4) {
                         Image(systemName: env.displayedMenuBarMetric.icon)
                             .font(.system(size: 10, weight: .bold))
                         Text(valueForMetric(env.displayedMenuBarMetric))
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     }
+                    .foregroundColor(previewTint)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color.primary.opacity(0.08))
+                    .background(env.menuBarIsDark ? Color(white: 0.16) : Color(white: 0.93))
                     .clipShape(RoundedRectangle(cornerRadius: 5))
 
                     Spacer(minLength: 0)
                 }
+                }
+                .disabled(!env.showMenuBarIcon)
+                .opacity(env.showMenuBarIcon ? 1 : 0.45)
             }
 
             // 2. Background behavior
@@ -160,7 +188,7 @@ public struct SettingsView: View {
             SectionCard("Theme", icon: "doc.richtext", tint: .indigo, accessory: {
                 PillTag(env.visualTheme.title.uppercased(), tint: .indigo)
             }) {
-                Text("Publication gives a minimal, paper-ready look for screenshots and figures: white background, serif text, colour-blind-safe lines, labelled time axis, and mean and peak markers. The dashboard's Capture button uses the current theme.")
+                Text("Publication gives a minimal, paper-ready look for screenshots and figures: white background, serif text, colour-blind-safe lines and the markings you choose below. The dashboard's Capture button uses the current theme.")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -169,6 +197,11 @@ public struct SettingsView: View {
                         themeOption(option)
                     }
                 }
+            }
+
+            // 4c. Publication markings
+            if env.visualTheme.isPublication {
+                publicationMarkingsCard
             }
 
             // 5. About
@@ -222,10 +255,149 @@ public struct SettingsView: View {
         }
     }
 
+    /// Colour of the menu bar preview, matching what the real status item draws.
+    private var previewTint: Color {
+        let dark = env.menuBarIsDark
+        guard env.menuBarUsageColors else { return dark ? .white : .black }
+        let s = env.samplingCoordinator
+        switch env.displayedMenuBarMetric {
+        case .cpu: return UsageColor.menuBarColor(s.latestCPU?.value?.totalUsagePercent ?? 0, scale: .percent, darkMenuBar: dark)
+        case .gpu: return UsageColor.menuBarColor(s.latestGPU?.value?.utilizationPercent ?? 0, scale: .percent, darkMenuBar: dark)
+        case .memory: return UsageColor.menuBarColor(s.latestMemory?.value?.usagePercentage ?? 0, scale: .percent, darkMenuBar: dark)
+        case .disk: return UsageColor.menuBarColor(s.latestStorage?.value?.first?.usagePercentage ?? 0, scale: .percent, darkMenuBar: dark)
+        case .network:
+            let n = s.latestNetwork?.value
+            return UsageColor.menuBarColor((n?.totalBytesInPerSecond ?? 0) + (n?.totalBytesOutPerSecond ?? 0), scale: .network, darkMenuBar: dark)
+        }
+    }
+
     private var appVersion: String {
-        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "6"
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.4.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "7"
         return "\(short) (\(build))"
+    }
+
+    // MARK: - Publication markings
+
+    private var publicationMarkingsCard: some View {
+        SectionCard("Publication Markings", icon: "ruler", tint: .indigo, accessory: {
+            HStack(spacing: 4) {
+                presetButton("Minimal", .minimal)
+                presetButton("Default", .standard)
+                presetButton("All", .all)
+            }
+        }) {
+            // Live preview using the real CPU history and the current colour settings.
+            TelemetryChart(
+                series: [ChartSeries(name: "CPU", values: env.samplingCoordinator.cpuHistory.values.isEmpty ? [0, 0] : env.samplingCoordinator.cpuHistory.values,
+                                     color: TelemetryKind.cpu.publicationColor)],
+                yDomain: 0...100,
+                unit: "Utilization (%)"
+            )
+            .environment(\.visualTheme, .publication)
+            .environment(\.publicationMarkings, env.publicationMarkings)
+            .frame(height: 190)
+            .padding(10)
+            .background(Color.white)
+            .overlay(Rectangle().strokeBorder(PublicationPalette.axis.opacity(0.3), lineWidth: 0.5))
+
+            // Four compact columns so every option is visible at once (hover a box for details).
+            AdaptiveGrid(minimum: 150, maxColumns: 4, spacing: 12) {
+                markingGroup("Reference lines") {
+                    markToggle("Mean", "Dotted line at the average", \.mean)
+                    markToggle("Median", "Dash-dot line at the median", \.median)
+                    markToggle("Linear trend", "Least-squares fit over the window", \.trendLine)
+                    HStack(spacing: 4) {
+                        markToggle("Moving avg", "Trailing average that smooths noise", \.movingAverage)
+                        compactStepper(value: binding(\.movingAverageWindow), range: 2...30, step: 1, suffix: "",
+                                       enabled: env.publicationMarkings.movingAverage)
+                    }
+                    HStack(spacing: 4) {
+                        markToggle("Threshold", "Fixed level on % charts", \.threshold)
+                        compactStepper(value: binding(\.thresholdValue), range: 5...100, step: 5, suffix: "%",
+                                       enabled: env.publicationMarkings.threshold)
+                    }
+                }
+                markingGroup("Markers") {
+                    markToggle("Peak ▲", "Highest value in the window", \.peak)
+                    markToggle("Minimum ◆", "Lowest value in the window", \.minimum)
+                    markToggle("Latest ●", "Most recent sample", \.latest)
+                    markToggle("Data points", "A dot on every sample", \.dataPoints)
+                    markToggle("Value labels", "Print numbers next to markings", \.valueLabels)
+                }
+                markingGroup("Bands") {
+                    markToggle("Mean ± 1σ", "Shaded standard-deviation band", \.stdDevBand)
+                    markToggle("Min–max range", "Shaded envelope of the data", \.rangeBand)
+                }
+                markingGroup("Axes & layout") {
+                    markToggle("Gridlines", "Light major gridlines", \.gridlines)
+                    markToggle("Axis ticks", "Tick marks on both axes", \.axisTicks)
+                    markToggle("Axis titles", "Time (s) and unit labels", \.axisTitles)
+                    markToggle("Plot frame", "Box around the plot area", \.plotFrame)
+                    markToggle("Legend / key", "Explains lines and markers", \.legend)
+                    markToggle("Smooth curves", "Off = straight segments between samples", \.smoothCurves)
+                    markToggle("Panel labels", "Prefix captured titles with (a)–(e)", \.panelLabels)
+                }
+            }
+
+            Text("Captured figures use exactly these settings.")
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private func compactStepper(value: Binding<Double>, range: ClosedRange<Double>, step: Double, suffix: String, enabled: Bool) -> some View {
+        HStack(spacing: 2) {
+            Text("\(Int(value.wrappedValue))\(suffix)")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(enabled ? .primary : .secondary)
+                .frame(minWidth: 26, alignment: .trailing)
+            Stepper("", value: value, in: range, step: step)
+                .labelsHidden()
+                .controlSize(.mini)
+        }
+        .disabled(!enabled)
+    }
+
+    private func compactStepper(value: Binding<Int>, range: ClosedRange<Int>, step: Int, suffix: String, enabled: Bool) -> some View {
+        compactStepper(
+            value: Binding(get: { Double(value.wrappedValue) }, set: { value.wrappedValue = Int($0) }),
+            range: Double(range.lowerBound)...Double(range.upperBound),
+            step: Double(step), suffix: suffix, enabled: enabled
+        )
+    }
+
+    private func binding<T>(_ keyPath: WritableKeyPath<PublicationMarkings, T>) -> Binding<T> {
+        Binding(
+            get: { env.publicationMarkings[keyPath: keyPath] },
+            set: { env.publicationMarkings[keyPath: keyPath] = $0 }
+        )
+    }
+
+    private func markingGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title.uppercased())
+                .font(.system(size: 9, weight: .bold))
+                .tracking(0.6)
+                .foregroundColor(.secondary)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func markToggle(_ title: String, _ detail: String, _ keyPath: WritableKeyPath<PublicationMarkings, Bool>) -> some View {
+        Toggle(isOn: binding(keyPath)) {
+            Text(title).font(.system(size: 11)).lineLimit(1)
+        }
+        .toggleStyle(.checkbox)
+        .help(detail)
+    }
+
+    private func presetButton(_ title: String, _ preset: PublicationMarkings) -> some View {
+        Button(title) { env.publicationMarkings = preset }
+            .buttonStyle(.bordered)
+            .controlSize(.mini)
+            .tint(env.publicationMarkings == preset ? .indigo : nil)
     }
 
     private func themeOption(_ option: VisualTheme) -> some View {

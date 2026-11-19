@@ -106,10 +106,12 @@ public struct DetailHeader: View {
     let subtitle: String
     let metric: String?
     let metricLabel: String?
+    let metricColor: Color?
 
     @Environment(\.layoutClass) private var layoutClass
 
-    public init(icon: String, tint: Color, title: String, subtitle: String, metric: String? = nil, metricLabel: String? = nil) {
+    public init(icon: String, tint: Color, title: String, subtitle: String, metric: String? = nil, metricLabel: String? = nil, metricColor: Color? = nil) {
+        self.metricColor = metricColor
         self.icon = icon
         self.tint = tint
         self.title = title
@@ -157,7 +159,7 @@ public struct DetailHeader: View {
                 Text(metric)
                     .font(.system(size: layoutClass == .compact ? 24 : 30, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundColor(tint)
+                    .foregroundColor(metricColor ?? tint)
                     .lineLimit(1)
                     .fixedSize()
                 if let metricLabel {

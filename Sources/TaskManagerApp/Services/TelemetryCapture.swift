@@ -70,113 +70,63 @@ struct TelemetrySnapshot {
     }
 }
 
-/// A single self-contained figure (title, chart, statistics, caption) for one component.
+/// A single figure for one component: just the title and the graph.
 struct TelemetryFigureView: View {
     let kind: TelemetryKind
     let snapshot: TelemetrySnapshot
     let theme: VisualTheme
+    let marks: PublicationMarkings
+    let panelIndex: Int
     let colorScheme: ColorScheme
 
     static let size = CGSize(width: 960, height: 540)
 
     var body: some View {
         let pub = theme.isPublication
-        let text = pub ? PublicationPalette.text : Color.primary
-        let secondary = pub ? PublicationPalette.secondaryText : Color.secondary
-
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(kind.figureTitle)
-                        .font(.system(size: 22, weight: pub ? .regular : .bold, design: pub ? .serif : .rounded))
-                        .foregroundColor(text)
-                    Text("\(snapshot.subtitle(for: kind)) · \(snapshot.deviceName) · macOS \(snapshot.osVersion)")
-                        .font(.system(size: 12, design: pub ? .serif : .default))
-                        .foregroundColor(secondary)
-                }
-                Spacer()
-                if !pub {
-                    Text(currentText)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundColor(kind.standardColor)
-                }
-            }
-
+            Text(title)
+                .font(.system(size: 22, weight: pub ? .regular : .bold, design: pub ? .serif : .rounded))
+                .foregroundColor(pub ? PublicationPalette.text : .primary)
             chart
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            statsRow(text: text, secondary: secondary)
-
-            Text(caption)
-                .font(.system(size: 10, design: pub ? .serif : .default))
-                .italic(pub)
-                .foregroundColor(secondary)
         }
         .padding(28)
         .frame(width: Self.size.width, height: Self.size.height)
         .background(background)
         .environment(\.visualTheme, theme)
+        .environment(\.publicationMarkings, marks)
         .environment(\.sampleInterval, snapshot.interval)
         .environment(\.layoutClass, .wide)
         .environment(\.colorScheme, pub ? .light : colorScheme)
+    }
+
+    private var title: String {
+        guard theme.isPublication && marks.panelLabels else { return kind.figureTitle }
+        let letter = Character(UnicodeScalar(UInt8(97 + panelIndex)))
+        return "(\(letter)) \(kind.figureTitle)"
     }
 
     @ViewBuilder
     private var chart: some View {
         switch kind {
         case .network:
-            // Captured figures always show the reference markings.
-            VStack(alignment: .trailing, spacing: 6) {
-                lineLegend
-                TelemetryChart(
-                    series: [
-                        ChartSeries(name: "Download", values: padded(snapshot.netIn), color: downColor),
-                        ChartSeries(name: "Upload", values: padded(snapshot.netOut), color: upColor, dashed: true)
-                    ],
-                    yDomain: nil,
-                    unit: "Throughput (\(netUnit.name))",
-                    scale: netUnit.scale,
-                    showLegend: false,
-                    markings: true
-                )
-            }
+            let u = ThroughputUnit.pick(maxBytesPerSecond: max(snapshot.netIn.max() ?? 0, snapshot.netOut.max() ?? 0))
+            TelemetryChart(
+                series: [
+                    ChartSeries(name: "Download", values: padded(snapshot.netIn), color: theme.isPublication ? PublicationPalette.blue : .cyan),
+                    ChartSeries(name: "Upload", values: padded(snapshot.netOut), color: theme.isPublication ? PublicationPalette.orange : .indigo, dashed: theme.isPublication)
+                ],
+                yDomain: nil,
+                unit: theme.isPublication ? "Throughput (\(u.name))" : u.name,
+                scale: u.scale,
+                showLegend: true
+            )
         default:
             TelemetryChart(
                 series: [ChartSeries(name: kind.title, values: padded(snapshot.values(for: kind)), color: kind.color(for: theme))],
                 yDomain: 0...100,
-                unit: kind == .cpu || kind == .gpu ? "Utilization (%)" : "Usage (%)",
-                markings: true
+                unit: theme.isPublication ? (kind == .cpu || kind == .gpu ? "Utilization (%)" : "Usage (%)") : "%"
             )
-        }
-    }
-
-    private var downColor: Color { theme.isPublication ? PublicationPalette.blue : .cyan }
-    private var upColor: Color { theme.isPublication ? PublicationPalette.orange : .indigo }
-
-    private var netUnit: (name: String, scale: Double) {
-        ThroughputUnit.pick(maxBytesPerSecond: max(snapshot.netIn.max() ?? 0, snapshot.netOut.max() ?? 0))
-    }
-
-    /// Legend drawn with real line samples (solid vs dashed) so it reads in greyscale too.
-    private var lineLegend: some View {
-        HStack(spacing: 16) {
-            legendItem("Download", color: downColor, dashed: false)
-            legendItem("Upload", color: upColor, dashed: true)
-        }
-    }
-
-    private func legendItem(_ name: String, color: Color, dashed: Bool) -> some View {
-        HStack(spacing: 6) {
-            Path { p in
-                p.move(to: CGPoint(x: 0, y: 5))
-                p.addLine(to: CGPoint(x: 26, y: 5))
-            }
-            .stroke(color, style: StrokeStyle(lineWidth: 2, dash: dashed ? [5, 3] : []))
-            .frame(width: 26, height: 10)
-            Text(name)
-                .font(.system(size: 11, design: theme.isPublication ? .serif : .default))
-                .foregroundColor(theme.isPublication ? PublicationPalette.text : .primary)
         }
     }
 
@@ -190,66 +140,6 @@ struct TelemetryFigureView: View {
                 LinearGradient(colors: [kind.standardColor.opacity(0.10), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
             }
         }
-    }
-
-    private func statsRow(text: Color, secondary: Color) -> some View {
-        HStack(spacing: 28) {
-            ForEach(stats, id: \.0) { item in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.0.uppercased())
-                        .font(.system(size: 9, weight: .semibold, design: theme.isPublication ? .serif : .default))
-                        .tracking(0.5)
-                        .foregroundColor(secondary)
-                    Text(item.1)
-                        .font(.system(size: 14, weight: .medium, design: theme.isPublication ? .serif : .monospaced))
-                        .foregroundColor(text)
-                }
-            }
-            Spacer()
-        }
-    }
-
-    // MARK: Statistics
-
-    private var primary: [Double] {
-        kind == .network ? snapshot.netIn.map { $0 / netUnit.scale } : snapshot.values(for: kind)
-    }
-
-    private func fmt(_ v: Double) -> String {
-        kind == .network ? TelemetryChart.format(v, unit: netUnit.name) : String(format: "%.1f%%", v)
-    }
-
-    private var currentText: String { fmt(primary.last ?? 0) }
-
-    private var stats: [(String, String)] {
-        let v = primary
-        guard !v.isEmpty else { return [("Samples", "0")] }
-        let mean = v.reduce(0, +) / Double(v.count)
-        let sd = sqrt(v.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(v.count))
-        var items: [(String, String)] = [
-            (kind == .network ? "Current ↓" : "Current", fmt(v.last ?? 0)),
-            ("Mean", fmt(mean)),
-            ("Std. dev.", fmt(sd)),
-            ("Min", fmt(v.min() ?? 0)),
-            ("Max", fmt(v.max() ?? 0))
-        ]
-        if kind == .network {
-            let up = snapshot.netOut.map { $0 / netUnit.scale }
-            let upMean = up.isEmpty ? 0 : up.reduce(0, +) / Double(up.count)
-            items.append(("Mean ↑", fmt(upMean)))
-        }
-        items.append(("Samples", "\(v.count) @ \(String(format: "%.1f", snapshot.interval)) s"))
-        return items
-    }
-
-    private var caption: String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss zzz"
-        let window = Double(max(1, primary.count - 1)) * snapshot.interval
-        let markings = kind == .network
-            ? "Solid line: download; dashed line: upload. Dotted horizontal line: mean download; ▲: peak download."
-            : "Dotted horizontal line: mean over the window; ▲: peak value."
-        return "Captured \(f.string(from: snapshot.date)) with Task Manager for macOS. Window: last \(Int(window)) s, sampled every \(String(format: "%.1f", snapshot.interval)) s. \(markings)"
     }
 
     /// Ensures the chart always has at least two points to draw.
@@ -285,7 +175,7 @@ enum TelemetryCaptureService {
         // 3. Render each figure at 3× (≈ 288 dpi for a 960×540 pt figure) and save as PNG.
         var files: [URL] = []
         for (index, kind) in TelemetryKind.allCases.enumerated() {
-            let view = TelemetryFigureView(kind: kind, snapshot: snapshot, theme: theme, colorScheme: colorScheme)
+            let view = TelemetryFigureView(kind: kind, snapshot: snapshot, theme: theme, marks: env.publicationMarkings, panelIndex: index, colorScheme: colorScheme)
             let renderer = ImageRenderer(content: view)
             renderer.scale = 3
             renderer.proposedSize = ProposedViewSize(TelemetryFigureView.size)

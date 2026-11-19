@@ -130,3 +130,171 @@ public extension EnvironmentValues {
         set { self[SampleIntervalKey.self] = newValue }
     }
 }
+
+// MARK: - Publication markings
+
+/// Which reference markings the Publication theme draws on charts (and captured figures).
+public struct PublicationMarkings: Codable, Equatable, Sendable {
+    // Reference lines
+    public var mean = true
+    public var median = false
+    public var threshold = false
+    public var thresholdValue: Double = 80
+    public var trendLine = false
+    public var movingAverage = false
+    public var movingAverageWindow = 5
+    // Point markers
+    public var peak = true
+    public var minimum = false
+    public var latest = false
+    public var dataPoints = false
+    // Bands
+    public var stdDevBand = false
+    public var rangeBand = false
+    // Axes & layout
+    public var gridlines = true
+    public var plotFrame = true
+    public var axisTitles = true
+    public var axisTicks = true
+    public var legend = true
+    public var valueLabels = true
+    public var smoothCurves = false
+    public var panelLabels = false
+
+    public init() {}
+
+    public static let standard = PublicationMarkings()
+
+    /// Used where only the series legend fits (small dashboard cards).
+    static var seriesOnly: PublicationMarkings {
+        var m = PublicationMarkings()
+        m.mean = false; m.peak = false
+        return m
+    }
+
+    public static var minimal: PublicationMarkings {
+        var m = PublicationMarkings()
+        m.mean = false
+        m.peak = false
+        m.gridlines = false
+        m.valueLabels = false
+        m.legend = true
+        return m
+    }
+
+    public static var all: PublicationMarkings {
+        var m = PublicationMarkings()
+        m.mean = true; m.median = true; m.threshold = true; m.trendLine = true; m.movingAverage = true
+        m.peak = true; m.minimum = true; m.latest = true; m.dataPoints = true
+        m.stdDevBand = true; m.rangeBand = true
+        m.gridlines = true; m.plotFrame = true; m.axisTitles = true; m.axisTicks = true
+        m.legend = true; m.valueLabels = true; m.panelLabels = true
+        return m
+    }
+
+    /// True when the chart should draw a key explaining the active markings.
+    public var hasStatisticalMarks: Bool {
+        mean || median || threshold || trendLine || movingAverage || peak || minimum || latest || stdDevBand || rangeBand
+    }
+
+    // Decode tolerantly so settings saved by older versions still load.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = PublicationMarkings()
+        func v<T: Decodable>(_ k: CodingKeys, _ def: T) -> T { (try? c.decodeIfPresent(T.self, forKey: k)) ?? def }
+        mean = v(.mean, d.mean); median = v(.median, d.median)
+        threshold = v(.threshold, d.threshold); thresholdValue = v(.thresholdValue, d.thresholdValue)
+        trendLine = v(.trendLine, d.trendLine)
+        movingAverage = v(.movingAverage, d.movingAverage); movingAverageWindow = v(.movingAverageWindow, d.movingAverageWindow)
+        peak = v(.peak, d.peak); minimum = v(.minimum, d.minimum); latest = v(.latest, d.latest); dataPoints = v(.dataPoints, d.dataPoints)
+        stdDevBand = v(.stdDevBand, d.stdDevBand); rangeBand = v(.rangeBand, d.rangeBand)
+        gridlines = v(.gridlines, d.gridlines); plotFrame = v(.plotFrame, d.plotFrame); axisTitles = v(.axisTitles, d.axisTitles)
+        axisTicks = v(.axisTicks, d.axisTicks); legend = v(.legend, d.legend); valueLabels = v(.valueLabels, d.valueLabels)
+        smoothCurves = v(.smoothCurves, d.smoothCurves); panelLabels = v(.panelLabels, d.panelLabels)
+    }
+}
+
+private struct ShowsMarkingsKeyKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+private struct PublicationMarkingsKey: EnvironmentKey {
+    static let defaultValue = PublicationMarkings()
+}
+
+public extension EnvironmentValues {
+    /// Whether charts draw the key explaining markings (off on small dashboard cards).
+    var showsMarkingsKey: Bool {
+        get { self[ShowsMarkingsKeyKey.self] }
+        set { self[ShowsMarkingsKeyKey.self] = newValue }
+    }
+
+    var publicationMarkings: PublicationMarkings {
+        get { self[PublicationMarkingsKey.self] }
+        set { self[PublicationMarkingsKey.self] = newValue }
+    }
+}
+
+// MARK: - Usage colour shading
+
+/// How a value maps onto the continuous green → red usage colour.
+public enum UsageScale: Sendable {
+    /// 0 % → green, 100 % → red.
+    case percent
+    /// Network throughput in bytes/s: ≥ 1 MB/s → green, ≤ 400 KB/s → red,
+    /// continuous (logarithmic) in between.
+    case network
+}
+
+/// Continuous green → yellow → red colour for a value (no fixed steps).
+/// Used for the menu bar item.
+public enum UsageColor {
+    static let greenHue = 0.36
+    static let redHue = 0.0
+
+    /// t = 0 → green, t = 1 → red.
+    public static func color(t rawT: Double) -> Color {
+        let t = min(1, max(0, rawT))
+        let hue = greenHue + (redHue - greenHue) * t
+        // Vivid but readable on both white and dark backgrounds; yellow is pulled
+        // slightly darker so it stays legible on white paper.
+        let brightness = 0.80 - 0.04 * sin(t * .pi)
+        let saturation = 0.78 + 0.12 * sin(t * .pi)
+        return Color(hue: hue, saturation: saturation, brightness: brightness)
+    }
+
+    public static func badness(_ value: Double, scale: UsageScale) -> Double {
+        switch scale {
+        case .percent:
+            return value / 100
+        case .network:
+            let low = 400.0 * 1024, high = 1_048_576.0
+            if value <= low { return 1 }
+            if value >= high { return 0 }
+            return 1 - (log(value) - log(low)) / (log(high) - log(low))
+        }
+    }
+
+    public static func color(_ value: Double, scale: UsageScale) -> Color {
+        color(t: badness(value, scale: scale))
+    }
+
+    /// Menu bar variant tuned for legibility on the current menu bar background.
+    /// Dark menu bar: bright, pastel shades leaning toward white.
+    /// Light menu bar: deeper, more saturated shades so they stand out on white.
+    public static func menuBarColor(_ value: Double, scale: UsageScale, darkMenuBar: Bool) -> Color {
+        let t = min(1, max(0, badness(value, scale: scale)))
+        let hue = greenHue + (redHue - greenHue) * t
+        if darkMenuBar {
+            return Color(hue: hue, saturation: 0.42 + 0.08 * t, brightness: 1.0)
+        } else {
+            return Color(hue: hue, saturation: 0.85, brightness: 0.62 + 0.08 * (1 - sin(t * .pi)))
+        }
+    }
+
+    /// Whether the system menu bar is currently dark (follows macOS Dark Mode).
+    public static var systemMenuBarIsDark: Bool {
+        UserDefaults.standard.string(forKey: "AppleInterfaceStyle")?.lowercased() == "dark"
+    }
+}
+
