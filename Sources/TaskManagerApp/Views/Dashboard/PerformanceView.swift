@@ -238,6 +238,7 @@ public struct PerformanceView: View {
         icon: String,
         accentColor: Color,
         primaryMetric: String,
+        metricColor: Color? = nil,
         secondaryMetric: String,
         @ViewBuilder chart: () -> Content
     ) -> some View {
@@ -265,12 +266,13 @@ public struct PerformanceView: View {
                         Text(primaryMetric)
                             .font(.system(size: 17, weight: .bold, design: .rounded))
                             .monospacedDigit()
-                            .foregroundColor(accentColor)
+                            .foregroundColor(metricColor ?? accentColor)
                             .lineLimit(1)
                             .fixedSize()
                     }
 
                     chart()
+                        .environment(\.showsMarkingsKey, false)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     HStack(spacing: 6) {

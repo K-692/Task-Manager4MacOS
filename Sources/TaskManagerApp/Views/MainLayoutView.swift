@@ -67,6 +67,7 @@ public struct MainLayoutView: View {
             }
         }
         .environment(\.visualTheme, env.visualTheme)
+        .environment(\.publicationMarkings, env.publicationMarkings)
         .environment(\.sampleInterval, env.samplingCoordinator.samplingInterval)
         .animation(.easeOut(duration: 0.15), value: env.isCommandPalettePresented)
         .animation(.easeInOut(duration: 0.15), value: env.selectedDestination)

@@ -153,6 +153,7 @@ public struct MenuBarContentView: View {
         title: String,
         tint: Color,
         value: String,
+        valueColor: Color = .primary,
         detail: String? = nil,
         history: [Double],
         maxVal: Double,
@@ -180,7 +181,7 @@ public struct MenuBarContentView: View {
                 SparklineView(data: history, minVal: 0, maxVal: maxVal, tint: tint)
                 Text(value)
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundColor(.primary)
+                    .foregroundColor(valueColor)
                     .lineLimit(1)
                     .frame(width: 70, alignment: .trailing)
             }

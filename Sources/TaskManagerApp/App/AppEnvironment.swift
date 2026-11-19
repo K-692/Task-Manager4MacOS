@@ -52,6 +52,29 @@ public final class AppEnvironment: ObservableObject {
     @Published public var visualTheme: VisualTheme = .standard {
         didSet { try? settingsRepo.set(key: "visual_theme", value: visualTheme.rawValue) }
     }
+    /// Whether the live metric appears in the macOS menu bar at all (stored in UserDefaults
+    /// so the MenuBarExtra scene can bind to it with @AppStorage).
+    public static let menuBarVisibleDefaultsKey = "menubar_visible"
+    @Published public var showMenuBarIcon: Bool = UserDefaults.standard.object(forKey: AppEnvironment.menuBarVisibleDefaultsKey) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showMenuBarIcon, forKey: Self.menuBarVisibleDefaultsKey) }
+    }
+
+    /// Tracks the system menu bar appearance so menu bar colours stay legible.
+    @Published public private(set) var menuBarIsDark: Bool = UsageColor.systemMenuBarIsDark
+
+    /// Colour the menu bar item continuously from green (low usage) to red (high usage).
+    @Published public var menuBarUsageColors: Bool = true {
+        didSet { try? settingsRepo.setBool(key: "menubar_usage_colors", value: menuBarUsageColors) }
+    }
+
+    /// Markings drawn by the Publication theme.
+    @Published public var publicationMarkings = PublicationMarkings() {
+        didSet {
+            if let data = try? JSONEncoder().encode(publicationMarkings), let json = String(data: data, encoding: .utf8) {
+                try? settingsRepo.set(key: "publication_markings", value: json)
+            }
+        }
+    }
     /// The menu bar widget is always on; this controls whether the Dock icon
     /// disappears while the main window is closed.
     @Published public var hideDockIconWhenClosed: Bool = true {
@@ -162,6 +185,11 @@ public final class AppEnvironment: ObservableObject {
             // Load saved settings
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
             self.visualTheme = VisualTheme(rawValue: sRepo.getString(key: "visual_theme", default: "standard")) ?? .standard
+            self.menuBarUsageColors = sRepo.getBool(key: "menubar_usage_colors", default: true)
+            if let data = sRepo.getString(key: "publication_markings", default: "").data(using: .utf8),
+               let saved = try? JSONDecoder().decode(PublicationMarkings.self, from: data) {
+                self.publicationMarkings = saved
+            }
             self.hideDockIconWhenClosed = sRepo.getBool(key: "hide_dock_when_closed", default: true)
             self.rotateMenuBarMetrics = sRepo.getBool(key: "menubar_rotate", default: true)
 
@@ -177,6 +205,17 @@ public final class AppEnvironment: ObservableObject {
 
             reloadCapabilities()
             restartRotation()
+
+            // Re-read the menu bar appearance whenever macOS switches Light/Dark mode.
+            DistributedNotificationCenter.default().addObserver(
+                forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.menuBarIsDark = UsageColor.systemMenuBarIsDark
+                }
+            }
         } catch {
             fatalError("Failed to initialize TaskManager AppEnvironment: \(error)")
         }

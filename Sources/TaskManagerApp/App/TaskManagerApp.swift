@@ -56,7 +56,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     MainActor.assumeIsolated {
                         let stillOpen = NSApp.windows.contains { $0 !== closing && WindowRouter.isMainWindow($0) && $0.isVisible }
-                        let hideDock = WindowRouter.shared.environment?.hideDockIconWhenClosed ?? true
+                        // Without a menu bar icon the Dock icon is the only way back, so keep it.
+                        let env = WindowRouter.shared.environment
+                        let hideDock = (env?.hideDockIconWhenClosed ?? true) && (env?.showMenuBarIcon ?? true)
                         if !stillOpen && hideDock {
                             NSApp.setActivationPolicy(.accessory)
                         }
@@ -93,6 +95,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct TaskManagerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var env = AppEnvironment()
+    /// Menu bar visibility lives in UserDefaults: SwiftUI's MenuBarExtra(isInserted:)
+    /// only tracks an @AppStorage-backed binding reliably.
+    @AppStorage(AppEnvironment.menuBarVisibleDefaultsKey) private var showMenuBarIcon = true
 
     var body: some Scene {
         Window("Task Manager", id: WindowRouter.mainWindowID) {
@@ -183,7 +188,7 @@ struct TaskManagerApp: App {
         // Native Menu Bar Utility updating live every 1s with user-customized components
         // Always-on menu bar utility. It is not optional: the app keeps running
         // here after the window is closed, until the user explicitly quits.
-        MenuBarExtra {
+        MenuBarExtra(isInserted: $showMenuBarIcon) {
             MenuBarContentView(sampling: env.samplingCoordinator)
                 .environmentObject(env)
                 .preferredColorScheme(standardColorScheme)
@@ -264,7 +269,21 @@ private struct MenuBarStatusLabel: View {
         // Rendered as a fixed-size template image: the status item keeps exactly the
         // same width whatever the metric or value, so neighbouring menu bar items
         // never shift while the metrics rotate.
-        if let image = Self.renderLabel(icon: metric.icon, value: value) {
+        // Continuous green → red tint by usage (Network: by throughput); nil keeps the
+        // standard monochrome menu bar look.
+        let tint: Color? = {
+            guard env.menuBarUsageColors else { return nil }
+            let dark = env.menuBarIsDark
+            switch metric {
+            case .cpu: return UsageColor.menuBarColor(sampling.latestCPU?.value?.totalUsagePercent ?? 0, scale: .percent, darkMenuBar: dark)
+            case .gpu: return UsageColor.menuBarColor(sampling.latestGPU?.value?.utilizationPercent ?? 0, scale: .percent, darkMenuBar: dark)
+            case .memory: return UsageColor.menuBarColor(sampling.latestMemory?.value?.usagePercentage ?? 0, scale: .percent, darkMenuBar: dark)
+            case .disk: return UsageColor.menuBarColor(sampling.latestStorage?.value?.first?.usagePercentage ?? 0, scale: .percent, darkMenuBar: dark)
+            case .network: return UsageColor.menuBarColor(netIn + netOut, scale: .network, darkMenuBar: dark)
+            }
+        }()
+
+        if let image = Self.renderLabel(icon: metric.icon, value: value, tint: tint) {
             Image(nsImage: image)
         } else {
             Image(systemName: metric.icon)
@@ -287,7 +306,7 @@ private struct MenuBarStatusLabel: View {
     private static let slotWidth: CGFloat = iconWidth + spacing + maxValueWidth
 
     @MainActor
-    private static func renderLabel(icon: String, value: String) -> NSImage? {
+    private static func renderLabel(icon: String, value: String, tint: Color?) -> NSImage? {
         // Icon + value hug each other and are centred in a constant-width slot,
         // so the item never changes size and the spacing is balanced on both sides.
         let content = HStack(spacing: spacing) {
@@ -299,15 +318,16 @@ private struct MenuBarStatusLabel: View {
                 .lineLimit(1)
                 .fixedSize()
         }
-        .foregroundColor(.black)
+        .foregroundColor(tint ?? .black)
         .frame(width: slotWidth, height: height, alignment: .center)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
         image.size = NSSize(width: slotWidth, height: height)
-        // Template images are tinted by macOS to match the light/dark menu bar.
-        image.isTemplate = true
+        // Uncoloured: a template image that macOS tints to match the light/dark menu bar.
+        // Coloured: keep the usage colour as drawn.
+        image.isTemplate = (tint == nil)
         return image
     }
 
