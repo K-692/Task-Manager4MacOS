@@ -105,7 +105,7 @@ public enum PublicationPalette {
     public static let vermillion = Color(red: 0.835, green: 0.369, blue: 0.0)
     public static let reddishPurple = Color(red: 0.800, green: 0.475, blue: 0.655)
     public static let axis = Color(white: 0.15)
-    public static let grid = Color(white: 0.86)
+    public static let grid = Color(white: 0.80)
     public static let text = Color(white: 0.08)
     public static let secondaryText = Color(white: 0.35)
 }

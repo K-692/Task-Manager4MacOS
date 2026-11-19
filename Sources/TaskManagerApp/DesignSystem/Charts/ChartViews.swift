@@ -355,7 +355,7 @@ public struct TelemetryChart: View {
             .chartXAxis {
                 AxisMarks(position: .bottom, values: xTicks) { value in
                     if m.gridlines {
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(PublicationPalette.grid)
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.7)).foregroundStyle(PublicationPalette.grid)
                     }
                     if m.axisTicks {
                         AxisTick(length: 4, stroke: StrokeStyle(lineWidth: 0.8)).foregroundStyle(PublicationPalette.axis)
@@ -372,7 +372,7 @@ public struct TelemetryChart: View {
             .chartYAxis {
                 AxisMarks(position: .leading, values: yAxisValues) { value in
                     if m.gridlines {
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(PublicationPalette.grid)
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.7)).foregroundStyle(PublicationPalette.grid)
                     }
                     if m.axisTicks {
                         AxisTick(length: 4, stroke: StrokeStyle(lineWidth: 0.8)).foregroundStyle(PublicationPalette.axis)
@@ -400,10 +400,10 @@ public struct TelemetryChart: View {
                         .foregroundColor(PublicationPalette.text)
                 }
             }
+            // No plot background here: it would be drawn over the gridlines (the panel
+            // behind the chart is already white in the Publication theme).
             .chartPlotStyle { plot in
-                plot
-                    .background(Color.white)
-                    .border(m.plotFrame ? PublicationPalette.axis : Color.clear, width: 0.8)
+                plot.border(m.plotFrame ? PublicationPalette.axis : Color.clear, width: 0.8)
             }
         if let yDomain {
             base.chartYScale(domain: yDomain)
