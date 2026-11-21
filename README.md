@@ -254,6 +254,8 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 👉 **[Download TaskManager-1.6.0-Universal.dmg (v1.6.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.6.0-Universal.dmg)**
 
+The DMG is also attached to the **[latest GitHub Release](https://github.com/K-692/Task-Manager4MacOS/releases/latest)**.
+
 #### What's new in v1.6.0
 - **Menu bar: icon-only colour.** Only the icon is shaded green to red by usage. The value stays white (black on a light menu bar). The colour is always on, so the "Colour by usage" setting is gone.
 - **Lighter app.** Measured on an M1 MacBook Air with the window closed: **about 3 % CPU and ~75 MB**, down from about 11–18 % and ~178 MB. Changes:
