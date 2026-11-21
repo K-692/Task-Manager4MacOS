@@ -16,9 +16,18 @@ public struct MainLayoutView: View {
 
     public var body: some View {
         GeometryReader { geo in
-            content
-                .onAppear { adaptSidebar(to: geo.size.width) }
-                .onChange(of: geo.size.width) { adaptSidebar(to: $0) }
+            // SwiftUI keeps a closed window's views alive; render nothing while the window
+            // is not on screen so the live charts stop updating (and using CPU) until it
+            // comes back.
+            Group {
+                if env.mainWindowVisible {
+                    content
+                } else {
+                    Color(nsColor: .windowBackgroundColor)
+                }
+            }
+            .onAppear { adaptSidebar(to: geo.size.width) }
+            .onChange(of: geo.size.width) { adaptSidebar(to: $0) }
         }
     }
 
@@ -67,6 +76,7 @@ public struct MainLayoutView: View {
             }
         }
         .environment(\.visualTheme, env.visualTheme)
+        // Sample less while the window is closed (menu bar only).
         // Publication theme: solid black accents for buttons, selections and controls.
         .tint(env.visualTheme.isPublication ? PublicationPalette.text : nil)
         .environment(\.publicationMarkings, env.publicationMarkings)
@@ -82,16 +92,19 @@ public struct MainLayoutView: View {
             PerformanceView(sampling: env.samplingCoordinator)
         case .cpu:
             CPUDetailView(sampling: env.samplingCoordinator)
+                .liveProcesses(env.samplingCoordinator)
         case .gpu:
             GPUDetailView(sampling: env.samplingCoordinator)
         case .memory:
             MemoryDetailView(sampling: env.samplingCoordinator)
+                .liveProcesses(env.samplingCoordinator)
         case .disk:
             StorageView(sampling: env.samplingCoordinator)
         case .network:
             NetworkView(sampling: env.samplingCoordinator)
         case .processes:
             ProcessesView(sampling: env.samplingCoordinator)
+                .liveProcesses(env.samplingCoordinator)
         case .startupApps:
             StartupAppsView()
         case .settings:

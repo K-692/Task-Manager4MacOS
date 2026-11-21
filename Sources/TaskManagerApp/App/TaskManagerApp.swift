@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let closing = note.object as? NSWindow else { return }
             MainActor.assumeIsolated {
                 guard WindowRouter.isMainWindow(closing) else { return }
+                WindowRouter.shared.environment?.setMainWindowVisible(false)
                 // Give AppKit a moment to finish closing, then drop the Dock icon
                 // if no other main window remains.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -72,6 +73,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if WindowRouter.isMainWindow(window), NSApp.activationPolicy() != .regular {
                     NSApp.setActivationPolicy(.regular)
                 }
+                if WindowRouter.isMainWindow(window) {
+                    WindowRouter.shared.environment?.setMainWindowVisible(true)
+                }
+            }
+        })
+        // Pause the window's live UI while it is minimised, hidden or fully covered.
+        observers.append(center.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: nil, queue: .main) { note in
+            guard let window = note.object as? NSWindow else { return }
+            MainActor.assumeIsolated {
+                guard WindowRouter.isMainWindow(window) else { return }
+                WindowRouter.shared.environment?.setMainWindowVisible(window.isVisible && window.occlusionState.contains(.visible))
             }
         })
     }
@@ -191,6 +203,7 @@ struct TaskManagerApp: App {
         MenuBarExtra(isInserted: $showMenuBarIcon) {
             MenuBarContentView(sampling: env.samplingCoordinator)
                 .environmentObject(env)
+                .liveProcesses(env.samplingCoordinator)
                 .preferredColorScheme(standardColorScheme)
                 .background(WindowOpenerInstaller())
         } label: {
@@ -270,25 +283,21 @@ private struct MenuBarStatusLabel: View {
         // Rendered as a fixed-size template image: the status item keeps exactly the
         // same width whatever the metric or value, so neighbouring menu bar items
         // never shift while the metrics rotate.
-        // Continuous green → red tint by usage (Network: by throughput); nil keeps the
-        // standard monochrome menu bar look.
-        let tint: Color? = {
-            guard env.menuBarUsageColors else { return nil }
-            let dark = env.menuBarIsDark
+        // Only the icon is shaded green → red by usage (Network: by throughput); the
+        // value keeps the normal menu bar text colour (white on a dark menu bar).
+        let dark = env.menuBarIsDark
+        let usage: (Double, UsageScale) = {
             switch metric {
-            case .cpu: return UsageColor.menuBarColor(sampling.latestCPU?.value?.totalUsagePercent ?? 0, scale: .percent, darkMenuBar: dark)
-            case .gpu: return UsageColor.menuBarColor(sampling.latestGPU?.value?.utilizationPercent ?? 0, scale: .percent, darkMenuBar: dark)
-            case .memory: return UsageColor.menuBarColor(sampling.latestMemory?.value?.usagePercentage ?? 0, scale: .percent, darkMenuBar: dark)
-            case .disk: return UsageColor.menuBarColor(sampling.latestStorage?.value?.first?.usagePercentage ?? 0, scale: .percent, darkMenuBar: dark)
-            case .network: return UsageColor.menuBarColor(netIn + netOut, scale: .network, darkMenuBar: dark)
+            case .cpu: return (sampling.latestCPU?.value?.totalUsagePercent ?? 0, .percent)
+            case .gpu: return (sampling.latestGPU?.value?.utilizationPercent ?? 0, .percent)
+            case .memory: return (sampling.latestMemory?.value?.usagePercentage ?? 0, .percent)
+            case .disk: return (sampling.latestStorage?.value?.first?.usagePercentage ?? 0, .percent)
+            case .network: return (netIn + netOut, .network)
             }
         }()
+        let iconColor = NSColor(UsageColor.menuBarColor(usage.0, scale: usage.1, darkMenuBar: dark))
 
-        if let image = Self.renderLabel(icon: metric.icon, value: value, tint: tint) {
-            Image(nsImage: image)
-        } else {
-            Image(systemName: metric.icon)
-        }
+        Image(nsImage: Self.label(icon: metric.icon, value: value, iconColor: iconColor, darkMenuBar: dark))
     }
 
     private static let iconWidth: CGFloat = 16
@@ -306,29 +315,40 @@ private struct MenuBarStatusLabel: View {
     /// Constant total width of the menu bar label.
     private static let slotWidth: CGFloat = iconWidth + spacing + maxValueWidth
 
-    @MainActor
-    private static func renderLabel(icon: String, value: String, tint: Color?) -> NSImage? {
-        // Icon + value hug each other and are centred in a constant-width slot,
-        // so the item never changes size and the spacing is balanced on both sides.
-        let content = HStack(spacing: spacing) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .medium))
-                .frame(width: iconWidth, height: height)
-            Text(value)
-                .font(Font(valueFont))
-                .lineLimit(1)
-                .fixedSize()
-        }
-        .foregroundColor(tint ?? .black)
-        .frame(width: slotWidth, height: height, alignment: .center)
+    /// Last rendered label, reused while nothing visible changed.
+    @MainActor private static var cache: (key: String, image: NSImage)?
 
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
-        guard let image = renderer.nsImage else { return nil }
-        image.size = NSSize(width: slotWidth, height: height)
-        // Uncoloured: a template image that macOS tints to match the light/dark menu bar.
-        // Coloured: keep the usage colour as drawn.
-        image.isTemplate = (tint == nil)
+    /// Draws the label directly with AppKit (much cheaper than rendering a SwiftUI view
+    /// every second). Icon + value are centred in a constant-width slot so the status
+    /// item never changes size.
+    @MainActor
+    private static func label(icon: String, value: String, iconColor: NSColor, darkMenuBar: Bool) -> NSImage {
+        let rgb = iconColor.usingColorSpace(.sRGB) ?? iconColor
+        let key = "\(icon)|\(value)|\(darkMenuBar)|\(Int(rgb.redComponent * 255)),\(Int(rgb.greenComponent * 255)),\(Int(rgb.blueComponent * 255))"
+        if let cache, cache.key == key { return cache.image }
+
+        let textColor: NSColor = darkMenuBar ? .white : .black
+        let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [iconColor]))
+        let symbol = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?.withSymbolConfiguration(config)
+        let attrs: [NSAttributedString.Key: Any] = [.font: valueFont, .foregroundColor: textColor]
+        let textSize = (value as NSString).size(withAttributes: attrs)
+
+        let image = NSImage(size: NSSize(width: slotWidth, height: height), flipped: false) { rect in
+            let contentWidth = iconWidth + spacing + textSize.width
+            var x = (rect.width - contentWidth) / 2
+            if let symbol {
+                let s = symbol.size
+                let scale = min(1, iconWidth / max(s.width, 1), height / max(s.height, 1))
+                let w = s.width * scale, h = s.height * scale
+                symbol.draw(in: NSRect(x: x + (iconWidth - w) / 2, y: (rect.height - h) / 2, width: w, height: h))
+            }
+            x += iconWidth + spacing
+            (value as NSString).draw(at: NSPoint(x: x, y: (rect.height - textSize.height) / 2), withAttributes: attrs)
+            return true
+        }
+        image.isTemplate = false
+        cache = (key, image)
         return image
     }
 

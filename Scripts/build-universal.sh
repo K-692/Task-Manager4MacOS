@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Choose an SDK that this toolchain can build SwiftUI against.
+source "$(dirname "$0")/select-sdk.sh"
+
 # Build Universal Binary (Apple Silicon + Intel) and assemble Universal .app bundle
 APP_NAME="Task Manager"
 BUNDLE_ID="com.k692.TaskManager"
@@ -93,9 +96,9 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.5.1</string>
+    <string>1.6.0</string>
     <key>CFBundleVersion</key>
-    <string>9</string>
+    <string>10</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key>

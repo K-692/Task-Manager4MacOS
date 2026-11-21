@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.5.1-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.5.1-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.6.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.6.0-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -37,7 +37,7 @@
 
 ### Why Task Manager for macOS?
 - **Zero Web Runtimes:** 100% native Swift, SwiftUI, AppKit, Metal, and Darwin Mach kernel APIs. No Electron, Node.js, Chromium, or web servers.
-- **Featherlight Overhead:** Idles with `< 0.4%` CPU usage and `~25MB` memory footprint.
+- **Lightweight:** With the window closed it runs as a menu bar utility at about **3 % CPU** and **~75 MB** of memory (M1 MacBook Air, 1 s sampling). The window's live charts pause automatically while it is closed, minimised or fully covered.
 - **Always-On Menu Bar Utility:** Closing the window never quits the app. Task Manager keeps monitoring from the menu bar (and drops its Dock icon) until you explicitly choose **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>). It registers as a login item on first launch so it is there after every restart.
 - **Fully Responsive Window:** Every screen adapts as the window shrinks: the sidebar auto-collapses, cards reflow from multi-column grids into a single column, tables hide lower-priority columns, and headers wrap. Nothing clips or overlaps from a full-screen window down to ~460 pt wide.
 - **Command-Center Dashboard:** On large windows all 5 core performance graphs (CPU, GPU, Memory, Disk, Network) fill one viewport with zero scrolling; on smaller windows they become a scrollable card grid.
@@ -48,7 +48,7 @@
 - **Memory-First Process Sorting:** Processes default-sorted by physical resident memory footprint for instant leak detection, with instant "End Task" process control.
 - **100% In-Memory Ephemeral Telemetry:** Zero disk I/O writes for metrics; live 60-second rolling ring buffers prevent SSD wear. No SQLite metric rollups $>60$ seconds.
 - **Research-Ready Figures:** Switch to the minimal **Publication** theme, pick exactly which markings you want (mean, median, trend, σ band, peak, threshold and more) and press **Capture**. You get all five live telemetry charts as separate, clean title-and-graph PNG figures from the same moment.
-- **Usage-Coloured Menu Bar:** The menu bar icon shades continuously from green to red as usage rises, tuned for a dark or light menu bar. You can turn it off or hide the icon entirely.
+- **Usage-Coloured Menu Bar Icon:** The menu bar icon shades continuously from green to red as usage rises; the value stays in the normal menu bar text colour (white on a dark menu bar). The icon can be hidden entirely.
 - **Refreshed Design (v1.1):** Gradient icon badges, layered cards, smooth monotone charts with consistent per-component colors, and a redesigned menu bar popover with sparklines and top processes.
 
 ---
@@ -99,7 +99,7 @@ Press **Capture** on the dashboard and five separate figures (CPU, GPU, Memory, 
   <img src="App_Screenshots/Menubar-Usage.png" alt="Menu bar icon colour changing with usage" width="420" />
 </p>
 
-*The rotating menu bar item, coloured by usage: CPU 24 % (green), GPU 71 %, Memory 74 % and Storage 79 % (amber to orange), and Network at 47 KB/s (red, below 400 KB/s). The shading is continuous, not stepped.*
+*The rotating menu bar item: only the **icon** is coloured by usage, and the value stays white. Shown: CPU 20 % (green), GPU 70 %, Memory 68 % and Storage 75 % (amber to orange), and Network at 1 KB/s (red, below 400 KB/s). The shading is continuous, not stepped.*
 
 <p align="center">
   <img src="App_Screenshots/Menubar.png" alt="Menu bar popover" width="360" />
@@ -183,11 +183,10 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 ### 4. 🍎 Always-On Menu Bar Utility
 - **Optional icon:** turn **Show in menu bar** off in Settings to hide the icon. Task Manager keeps running and stays in the Dock so you can reopen it.
-- **Usage colours:** with **Colour by usage** on, the icon and value shade continuously from green to red:
+- **Usage-coloured icon** (always on): the menu bar **icon** shades continuously from green to red, while the **value text stays white** (black on a light menu bar):
   - **CPU, GPU, Memory, Storage:** green at low utilisation, through yellow and orange, to red at 100 %.
   - **Network:** green at 1 MB/s or more, red at 400 KB/s or less, with a smooth (logarithmic) blend in between.
   - **Adapts to the menu bar:** bright, white-leaning pastels on a dark menu bar and deeper tones on a light one, updated automatically when macOS switches between Light and Dark mode.
-  - **Off:** the standard monochrome look (white on a dark menu bar).
   - Colours apply **only to the menu bar icon**. Charts keep their normal theme colours.
 - **Never Quits on Close:** Closing the main window leaves Task Manager running in the menu bar. The Dock icon hides automatically while the window is closed (toggle in Settings) and returns when you reopen it from the menu bar, Spotlight, or Finder. Only **Quit** (<kbd>⌘</kbd> + <kbd>Q</kbd>, or the power button in the popover) exits the app.
 - **Starts with your Mac:** Launch at login is enabled on first run so the widget is always available after a restart. You can turn it off in Settings.
@@ -240,7 +239,7 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 - **Background & Startup:** Hide the Dock icon while the window is closed, and toggle launch at login.
 - **Telemetry & Sample Rate Control:** Custom segmented cadence pills (`0.5s Fast`, `1.0s Normal`, `3.0s Eco`, `Pause`) with active interval badge and explicit volatile in-memory ring buffer architecture (zero disk writes).
 - **Theme & markings:** Standard or Publication (paper-ready), plus the full set of publication markings. See the Publication Theme & Figure Capture section above.
-- **Menu bar:** show or hide the icon, 2-second rotation and colour by usage.
+- **Menu bar:** show or hide the icon and 2-second rotation (the icon is always coloured by usage).
 - **Appearance:** System, Light, and Dark mode selectors (Standard theme; Publication always uses white).
 - **Hardware Specs:** Device model, architecture, processor, installed RAM, graphics and macOS version in an adaptive grid.
 - **Desktop Widget Blueprint:** See [`Documentation/DesktopWidgetGuide.md`](Documentation/DesktopWidgetGuide.md) for full architectural patterns and Swift source code to add native macOS Sonoma/Sequoia Desktop Widgets.
@@ -253,7 +252,17 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.5.1-Universal.dmg (v1.5.1)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.5.1-Universal.dmg)**
+👉 **[Download TaskManager-1.6.0-Universal.dmg (v1.6.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.6.0-Universal.dmg)**
+
+#### What's new in v1.6.0
+- **Menu bar: icon-only colour.** Only the icon is shaded green to red by usage. The value stays white (black on a light menu bar). The colour is always on, so the "Colour by usage" setting is gone.
+- **Lighter app.** Measured on an M1 MacBook Air with the window closed: **about 3 % CPU and ~75 MB**, down from about 11–18 % and ~178 MB. Changes:
+  - The window's live charts pause while it is closed, minimised or fully covered (SwiftUI used to keep redrawing a closed window).
+  - The full process scan runs every second only while a screen showing processes is open (Processes, CPU or Memory page, menu bar popup). Otherwise every 5 s (window open) or 15 s (menu bar only).
+  - Disk usage refreshes every 5 s (30 s with the window closed) and battery every 10 s.
+  - One change notification per sample instead of about 13, forwarded without an extra async hop.
+  - The menu bar label is drawn directly with AppKit and cached, instead of rendering a SwiftUI view each second.
+- **Builds with the latest Command Line Tools.** The build scripts pick a compatible macOS SDK automatically when the SwiftUI macro plugin is missing (Command Line Tools 27.x without Xcode).
 
 #### What's new in v1.5.1
 - **Gridlines now visible:** the **Gridlines** option in Publication Markings now draws light grey major gridlines on every chart and captured figure. Previously the plot area's white background covered them.
@@ -298,15 +307,15 @@ You can download the ready-to-run Universal macOS installer directly from the re
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.5.1-Universal.dmg`](releases/TaskManager-1.5.1-Universal.dmg) |
-| **Version** | `1.5.1` |
+| **Package** | [`releases/TaskManager-1.6.0-Universal.dmg`](releases/TaskManager-1.6.0-Universal.dmg) |
+| **Version** | `1.6.0` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
 | **Package Size** | ~6.3 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `eab9786a2847ba4366cbd8b9eec7a376ab6274a75b5eb01a8683cf04872d2b9d` |
+| **SHA-256 Checksum** | `7fbc850eca7ce2660ff3c22e67b9253f6dde3415d6887e69fc11bd0e1cfb6ed8` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.5.1-Universal.dmg](releases/TaskManager-1.5.1-Universal.dmg)**.
+1. Download **[TaskManager-1.6.0-Universal.dmg](releases/TaskManager-1.6.0-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -332,7 +341,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.5.1-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.6.0-Universal.dmg` and updated in `releases/`.
 
 ---
 

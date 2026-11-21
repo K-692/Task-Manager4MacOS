@@ -59,13 +59,18 @@ public final class AppEnvironment: ObservableObject {
         didSet { UserDefaults.standard.set(showMenuBarIcon, forKey: Self.menuBarVisibleDefaultsKey) }
     }
 
+    /// Whether the main window is actually on screen (not closed, minimised or fully covered).
+    /// While false the window renders nothing and sampling runs in a lighter mode.
+    @Published public private(set) var mainWindowVisible: Bool = true
+
+    public func setMainWindowVisible(_ visible: Bool) {
+        samplingCoordinator.isWindowVisible = visible
+        if mainWindowVisible != visible { mainWindowVisible = visible }
+    }
+
     /// Tracks the system menu bar appearance so menu bar colours stay legible.
     @Published public private(set) var menuBarIsDark: Bool = UsageColor.systemMenuBarIsDark
 
-    /// Colour the menu bar item continuously from green (low usage) to red (high usage).
-    @Published public var menuBarUsageColors: Bool = true {
-        didSet { try? settingsRepo.setBool(key: "menubar_usage_colors", value: menuBarUsageColors) }
-    }
 
     /// Markings drawn by the Publication theme.
     @Published public var publicationMarkings = PublicationMarkings() {
@@ -175,8 +180,9 @@ public final class AppEnvironment: ObservableObject {
             self.loginItemService = LoginItemService()
 
             // Forward telemetry sampling ticks to notify all views observing env
+            // Sampling already runs on the main thread, so forward synchronously
+            // (no extra async hop per sample).
             coordinator.objectWillChange
-                .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     self?.objectWillChange.send()
                 }
@@ -185,7 +191,6 @@ public final class AppEnvironment: ObservableObject {
             // Load saved settings
             self.appearanceMode = sRepo.getString(key: "appearance", default: "system")
             self.visualTheme = VisualTheme(rawValue: sRepo.getString(key: "visual_theme", default: "standard")) ?? .standard
-            self.menuBarUsageColors = sRepo.getBool(key: "menubar_usage_colors", default: true)
             if let data = sRepo.getString(key: "publication_markings", default: "").data(using: .utf8),
                let saved = try? JSONDecoder().decode(PublicationMarkings.self, from: data) {
                 self.publicationMarkings = saved

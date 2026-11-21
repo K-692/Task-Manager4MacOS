@@ -36,19 +36,9 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                 settingRow(
                     title: "Rotate metrics every 2 seconds",
-                    detail: "Cycle CPU → GPU → Memory → Storage → Network in the menu bar. Turn off to always show the metric selected below."
+                    detail: "Cycle CPU → GPU → Memory → Storage → Network in the menu bar. Turn off to always show the metric selected below. The icon is shaded green → red by usage; the value stays in the menu bar text colour."
                 ) {
                     Toggle("", isOn: $env.rotateMenuBarMetrics)
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .labelsHidden()
-                }
-
-                settingRow(
-                    title: "Colour by usage",
-                    detail: "Shade the icon and value continuously from green to red, brightened automatically for a dark or light menu bar. CPU, GPU, Memory, Storage: green at low use, red at high use. Network: green at 1 MB/s or more, red at 400 KB/s or less. Off: plain white (or black on a light menu bar)."
-                ) {
-                    Toggle("", isOn: $env.menuBarUsageColors)
                         .toggleStyle(.switch)
                         .controlSize(.small)
                         .labelsHidden()
@@ -85,10 +75,11 @@ public struct SettingsView: View {
                     HStack(spacing: 4) {
                         Image(systemName: env.displayedMenuBarMetric.icon)
                             .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(previewTint)
                         Text(valueForMetric(env.displayedMenuBarMetric))
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundColor(env.menuBarIsDark ? .white : .black)
                     }
-                    .foregroundColor(previewTint)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(env.menuBarIsDark ? Color(white: 0.16) : Color(white: 0.93))
@@ -258,7 +249,6 @@ public struct SettingsView: View {
     /// Colour of the menu bar preview, matching what the real status item draws.
     private var previewTint: Color {
         let dark = env.menuBarIsDark
-        guard env.menuBarUsageColors else { return dark ? .white : .black }
         let s = env.samplingCoordinator
         switch env.displayedMenuBarMetric {
         case .cpu: return UsageColor.menuBarColor(s.latestCPU?.value?.totalUsagePercent ?? 0, scale: .percent, darkMenuBar: dark)
@@ -272,8 +262,8 @@ public struct SettingsView: View {
     }
 
     private var appVersion: String {
-        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.5.1"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "9"
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.6.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "10"
         return "\(short) (\(build))"
     }
 

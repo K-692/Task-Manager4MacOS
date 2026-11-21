@@ -1,5 +1,7 @@
 import Foundation
 import Combine
+import SwiftUI
+import TaskManagerCore
 
 /// Drives the menu bar metric rotation on a strict 2-second cadence.
 ///
@@ -48,5 +50,22 @@ public final class MenuBarRotation: ObservableObject {
         let steps = Int((elapsed / Self.interval).rounded())
         let next = all[(startIndex + steps) % all.count]
         if next != current { current = next }
+    }
+}
+
+/// Requests live (every-tick) process sampling while the modified view is on screen.
+struct LiveProcessesModifier: ViewModifier {
+    let sampling: SamplingCoordinator
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { sampling.beginLiveProcesses() }
+            .onDisappear { sampling.endLiveProcesses() }
+    }
+}
+
+extension View {
+    func liveProcesses(_ sampling: SamplingCoordinator) -> some View {
+        modifier(LiveProcessesModifier(sampling: sampling))
     }
 }

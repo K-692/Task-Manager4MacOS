@@ -42,22 +42,22 @@ public final class SamplingCoordinator: ObservableObject {
     public let processProvider: ProcessProvider
     public let rollupRepository: MetricRollupRepository?
 
-    @Published public private(set) var latestCPU: MetricSample<CPUMetrics>?
-    @Published public private(set) var latestMemory: MetricSample<MemoryMetrics>?
-    @Published public private(set) var latestGPU: MetricSample<GPUMetrics>?
-    @Published public private(set) var latestStorage: MetricSample<[VolumeInfo]>?
-    @Published public private(set) var latestBattery: MetricSample<BatteryMetrics>?
-    @Published public private(set) var latestNetwork: MetricSample<NetworkMetrics>?
-    @Published public private(set) var latestProcesses: MetricSample<[ProcessItem]>?
+    public private(set) var latestCPU: MetricSample<CPUMetrics>?
+    public private(set) var latestMemory: MetricSample<MemoryMetrics>?
+    public private(set) var latestGPU: MetricSample<GPUMetrics>?
+    public private(set) var latestStorage: MetricSample<[VolumeInfo]>?
+    public private(set) var latestBattery: MetricSample<BatteryMetrics>?
+    public private(set) var latestNetwork: MetricSample<NetworkMetrics>?
+    public private(set) var latestProcesses: MetricSample<[ProcessItem]>?
 
     // Rolling ring buffers for live charts (last 60 samples)
-    @Published public private(set) var cpuHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var gpuHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var memoryHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var diskHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var networkInHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var networkOutHistory = MetricRingBuffer(capacity: 60)
-    @Published public private(set) var networkTotalHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var cpuHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var gpuHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var memoryHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var diskHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var networkInHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var networkOutHistory = MetricRingBuffer(capacity: 60)
+    public private(set) var networkTotalHistory = MetricRingBuffer(capacity: 60)
 
     @Published public var isDashboardActive: Bool = true
 
@@ -73,6 +73,36 @@ public final class SamplingCoordinator: ObservableObject {
 
     private var samplingTimer: Timer?
     private var rollupCounter: Int = 0
+
+    // MARK: Lightweight sampling
+    //
+    // Scanning every process is the most expensive sample, so it only runs every tick
+    // while something on screen shows live process data (Processes, CPU/Memory detail,
+    // menu bar popup). Otherwise it runs every 5th tick (window open, for counts) or
+    // every 15th tick (menu bar only). Storage and battery change slowly and are
+    // sampled every 5th (30th with the window closed) / 10th tick.
+    private var liveProcessDemand = 0
+    /// Set by the app while the main window is on screen.
+    public var isWindowVisible = true
+
+    /// Call when a view that shows live process data appears.
+    public func beginLiveProcesses() {
+        liveProcessDemand += 1
+        if liveProcessDemand == 1 {
+            objectWillChange.send()
+            latestProcesses = processProvider.sample()
+        }
+    }
+
+    /// Call when that view disappears.
+    public func endLiveProcesses() {
+        liveProcessDemand = max(0, liveProcessDemand - 1)
+    }
+
+    private var processEvery: Int {
+        if liveProcessDemand > 0 { return 1 }
+        return isWindowVisible ? 5 : 15
+    }
 
     public init(
         cpuProvider: CPUProvider = CPUProvider(),
@@ -103,6 +133,7 @@ public final class SamplingCoordinator: ObservableObject {
     }
 
     private func seedInitialHistory() {
+        objectWillChange.send()
         let cpuVal = latestCPU?.value?.totalUsagePercent ?? 0.0
         let gpuVal = latestGPU?.value?.utilizationPercent ?? 0.0
         let memVal = latestMemory?.value?.usagePercentage ?? 50.0
@@ -138,20 +169,30 @@ public final class SamplingCoordinator: ObservableObject {
     }
 
     public func tick() {
-        // Sample core providers: CPU, Memory, GPU, Network, Processes, Storage
+        rollupCounter += 1
+
+        // One change notification per tick (instead of one per property).
+        objectWillChange.send()
+
         let cpu = cpuProvider.sample()
         let mem = memoryProvider.sample()
         let gpu = gpuProvider.sample()
         let net = networkProvider.sample()
-        let proc = processProvider.sample()
-        let storage = storageProvider.sample()
-
         latestCPU = cpu
         latestMemory = mem
         latestGPU = gpu
         latestNetwork = net
-        latestProcesses = proc
-        latestStorage = storage
+
+        if rollupCounter % processEvery == 0 {
+            latestProcesses = processProvider.sample()
+        }
+        // Disk usage changes slowly: every 5 s with the window open, every 30 s otherwise.
+        if rollupCounter % (isWindowVisible ? 5 : 30) == 0 || latestStorage == nil {
+            latestStorage = storageProvider.sample()
+        }
+        if rollupCounter % 10 == 0 {
+            latestBattery = batteryProvider.sample()
+        }
 
         if let cpuVal = cpu.value {
             cpuHistory.append(cpuVal.totalUsagePercent)
@@ -162,7 +203,7 @@ public final class SamplingCoordinator: ObservableObject {
         if let memVal = mem.value {
             memoryHistory.append(memVal.usagePercentage)
         }
-        if let diskVal = storage.value?.first?.usagePercentage {
+        if let diskVal = latestStorage?.value?.first?.usagePercentage {
             diskHistory.append(diskVal)
         }
         if let netVal = net.value {
@@ -170,16 +211,10 @@ public final class SamplingCoordinator: ObservableObject {
             networkOutHistory.append(netVal.totalBytesOutPerSecond)
             networkTotalHistory.append(netVal.totalBytesInPerSecond + netVal.totalBytesOutPerSecond)
         }
-
-        rollupCounter += 1
-
-        // Battery sampled every 5 ticks
-        if rollupCounter % 5 == 0 {
-            latestBattery = batteryProvider.sample()
-        }
     }
 
     public func refreshAll() {
+        objectWillChange.send()
         latestCPU = cpuProvider.sample()
         latestMemory = memoryProvider.sample()
         latestGPU = gpuProvider.sample()
