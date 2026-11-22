@@ -6,7 +6,7 @@
 ### The Native Hardware & Software Performance Monitor for macOS
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?logo=apple&style=for-the-badge)](https://developer.apple.com/macos/)
-[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.6.0-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.6.0-Universal.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-Universal%20DMG%20v1.6.1-2ea44f?logo=apple&style=for-the-badge)](releases/TaskManager-1.6.1-Universal.dmg)
 [![Language](https://img.shields.io/badge/Swift-6.0%20%7C%205.9-orange?logo=swift&style=for-the-badge)](https://swift.org)
 [![Architecture](https://img.shields.io/badge/Architecture-Universal%20(Apple%20Silicon%20%2B%20Intel)-purple?style=for-the-badge)](https://developer.apple.com/documentation/apple-silicon)
 [![Graphics](https://img.shields.io/badge/GPU%20Telemetry-Metal%20%2B%20IOKit-indigo?logo=apple&style=for-the-badge)](https://developer.apple.com/metal/)
@@ -252,9 +252,13 @@ Under `Live Hardware Telemetry` in the sidebar, selecting any component opens an
 
 You can download the ready-to-run Universal macOS installer directly from the repository:
 
-👉 **[Download TaskManager-1.6.0-Universal.dmg (v1.6.0)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.6.0-Universal.dmg)**
+👉 **[Download TaskManager-1.6.1-Universal.dmg (v1.6.1)](https://github.com/K-692/Task-Manager4MacOS/raw/main/releases/TaskManager-1.6.1-Universal.dmg)**
 
 The DMG is also attached to the **[latest GitHub Release](https://github.com/K-692/Task-Manager4MacOS/releases/latest)**.
+
+#### What's new in v1.6.1
+- **Fixes the v1.6.0 installer.** The v1.6.0 DMG accidentally contained the previous app binary (still showing the coloured value text and the "Colour by usage" setting). v1.6.1 ships the real v1.6.0 changes: only the menu bar icon is coloured, the value is white, and the setting is gone.
+- **Reliable universal builds.** The build script now asks Swift for each architecture's output path, copies every slice right after building it, and checks the architecture, so stale binaries can never be packaged again.
 
 #### What's new in v1.6.0
 - **Menu bar: icon-only colour.** Only the icon is shaded green to red by usage. The value stays white (black on a light menu bar). The colour is always on, so the "Colour by usage" setting is gone.
@@ -309,15 +313,15 @@ The DMG is also attached to the **[latest GitHub Release](https://github.com/K-6
 
 | Property | Details |
 |:---|:---|
-| **Package** | [`releases/TaskManager-1.6.0-Universal.dmg`](releases/TaskManager-1.6.0-Universal.dmg) |
-| **Version** | `1.6.0` |
+| **Package** | [`releases/TaskManager-1.6.1-Universal.dmg`](releases/TaskManager-1.6.1-Universal.dmg) |
+| **Version** | `1.6.1` |
 | **Target Architecture** | **Universal Binary** (`arm64` Apple Silicon M1/M2/M3/M4 + `x86_64` Intel 64-bit) |
 | **Minimum OS** | macOS 13.0 (Ventura), macOS 14.0 (Sonoma), macOS 15.0 (Sequoia) |
 | **Package Size** | ~6.3 MB (Compressed Read-Only UDZO) |
-| **SHA-256 Checksum** | `7fbc850eca7ce2660ff3c22e67b9253f6dde3415d6887e69fc11bd0e1cfb6ed8` |
+| **SHA-256 Checksum** | `1b95edcadb7a5e4804096291c388599ed287532dbc4b855668a225f6b27ba9b7` |
 
 #### Installation Steps:
-1. Download **[TaskManager-1.6.0-Universal.dmg](releases/TaskManager-1.6.0-Universal.dmg)**.
+1. Download **[TaskManager-1.6.1-Universal.dmg](releases/TaskManager-1.6.1-Universal.dmg)**.
 2. Double-click the `.dmg` file to mount it.
 3. Drag **Task Manager** into your **Applications** folder shortcut.
 4. Eject the disk image and launch **Task Manager** from Launchpad, Spotlight (<kbd>⌘</kbd> + <kbd>Space</kbd>), or Applications.
@@ -343,7 +347,7 @@ cd Task-Manager4MacOS
 # Build Universal app and package DMG
 ./Scripts/package-dmg.sh
 ```
-The output disk image will be created at `dist/TaskManager-1.6.0-Universal.dmg` and updated in `releases/`.
+The output disk image will be created at `dist/TaskManager-1.6.1-Universal.dmg` and updated in `releases/`.
 
 ---
 

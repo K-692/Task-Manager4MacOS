@@ -15,17 +15,26 @@ RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
 echo "==> Building arm64 and x86_64 universal slices..."
 
-swift build -c release --triple arm64-apple-macosx13.0
-swift build -c release --triple x86_64-apple-macosx13.0
-
-# Locate compiled binaries dynamically
-ARM64_BIN=$(find .build -path "*/arm64-apple-macosx*/release/TaskManager" -type f | head -n 1)
-X86_BIN=$(find .build -path "*/x86_64-apple-macosx*/release/TaskManager" -type f | head -n 1)
-
-if [ -z "${ARM64_BIN}" ] || [ -z "${X86_BIN}" ]; then
-    echo "Error: Could not locate arm64 or x86_64 binaries in .build!"
-    exit 1
-fi
+# Build each architecture and copy its binary out immediately. Newer SwiftPM build
+# systems write every triple to the same output folder, so the path is asked from
+# SwiftPM (--show-bin-path) instead of guessed, and each slice is saved before the
+# next build can overwrite it. Stale binaries from older build layouts are ignored.
+SLICES_DIR="${DIST_DIR}/slices"
+rm -rf "${SLICES_DIR}"
+mkdir -p "${SLICES_DIR}"
+for ARCH in arm64 x86_64; do
+    TRIPLE="${ARCH}-apple-macosx13.0"
+    swift build -c release --triple "${TRIPLE}"
+    BIN_DIR="$(swift build -c release --triple "${TRIPLE}" --show-bin-path)"
+    cp "${BIN_DIR}/TaskManager" "${SLICES_DIR}/TaskManager-${ARCH}"
+    # Refuse to package a binary of the wrong architecture.
+    if ! lipo -info "${SLICES_DIR}/TaskManager-${ARCH}" | grep -q "${ARCH}"; then
+        echo "Error: ${BIN_DIR}/TaskManager is not an ${ARCH} binary"
+        exit 1
+    fi
+done
+ARM64_BIN="${SLICES_DIR}/TaskManager-arm64"
+X86_BIN="${SLICES_DIR}/TaskManager-x86_64"
 
 echo "==> Found arm64 slice at: ${ARM64_BIN}"
 echo "==> Found x86_64 slice at: ${X86_BIN}"
@@ -96,9 +105,9 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.6.0</string>
+    <string>1.6.1</string>
     <key>CFBundleVersion</key>
-    <string>10</string>
+    <string>11</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key>
